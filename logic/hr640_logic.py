@@ -4,7 +4,8 @@
 This file contains logic to control monochromator (hr640) for this case.
 """
 
-#  TODO: add paths to calibration and position files as options for config
+# TODO: add paths to calibration and position files as options for config
+# TODO: smth wrong
 
 from core.module import Connector, StatusVar
 from core.util.mutex import Mutex
@@ -66,7 +67,8 @@ class Hr640Logic(GenericLogic):
         b[2] = math.floor((w - b[0] * 65536 - b[1] * 256))  # MSB
         return b[::-1]  # change byte order
 
-    def get_absolute_position_from_file(self, path='C:/Users/pwalbers/PycharmProjects/qudi/calibration/spectralink.pos'):
+    def get_absolute_position_from_file(self,
+                                        path='C:/Users/pwalbers/PycharmProjects/qudi/calibration/spectralink.pos'):
         """
         Get an absolute position from the second line of 'spectralink.pos' file.
         Read it as float and convert to nm by dividing to 10 (number in file in angstrom)
@@ -77,7 +79,8 @@ class Hr640Logic(GenericLogic):
             dat = pos.readlines()
         return float(dat[1].strip()) / 10
 
-    def put_absolute_position_to_file(self, absolute_position_nm, path='C:/Users/pwalbers/PycharmProjects/qudi/calibration/spectralink.pos'):
+    def put_absolute_position_to_file(self, absolute_position_nm,
+                                      path='C:/Users/pwalbers/PycharmProjects/qudi/calibration/spectralink.pos'):
         """
         Put current absolute position to the second line of 'spectralink.pos' file.
         Put it as float and convert to A by multiplying to 10 (number in file in angstrom!)
@@ -129,7 +132,7 @@ class Hr640Logic(GenericLogic):
         """
         return optimize.newton(
             lambda x: self.coeffs[0] + self.coeffs[1] * x + self.coeffs[2] * x ** 2
-                      + self.coeffs[3] * x ** 3 - wavelength_nm * 10, 5000) / 10  # nm to A
+            + self.coeffs[3] * x ** 3 - wavelength_nm * 10, 5000) / 10  # nm to A
 
     #####################################
     # interaction with gui and instrument
@@ -147,10 +150,11 @@ class Hr640Logic(GenericLogic):
     def load_position(self):
         self._hardware.load_position_nm(self.absolute_position)
 
+    # TODO: change the direction of backlash compensation
     def move_to_nm(self, target_nm):
         """ With backlash compensation if target have lower wavelength than absolute position. """
         if target_nm < self.absolute_position:
-            self._hardware.load_target_nm(target_nm-0.5)
+            self._hardware.load_target_nm(target_nm - 0.5)
             self._hardware.go_busy()
             self.absolute_position = target_nm
             self._hardware.load_target_nm(target_nm)
@@ -162,5 +166,3 @@ class Hr640Logic(GenericLogic):
             self.absolute_position = target_nm
         else:
             pass
-
-
