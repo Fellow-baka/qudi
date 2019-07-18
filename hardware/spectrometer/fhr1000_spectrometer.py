@@ -62,6 +62,10 @@ class Fhr1000(Base, SpectrometerInterface):
         # self.connect()
         self.connect()
         self.delay = 0.3  # 0.3 sec delay between read/write is recommended by manual
+        if self._autocalibrate_at_start == True:
+            self.log.info('Autocalibration procedure of FHR1000 started. It can take up to 100 seconds.')
+            time.sleep(0.5)
+            self.autocalibrate()
 
     def on_deactivate(self):
         """ Deactivate module."""

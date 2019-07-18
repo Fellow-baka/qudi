@@ -60,12 +60,6 @@ class Fhr1000Gui(GUIBase):
         # Connecting user interactions
         ##############################
 
-        # self._mw.readPositionButton.clicked.connect(self.button_position_clicked)
-        # self.sigRead.connect(self._hr_logic.get_from_file)
-        #
-        # self._mw.readBusyButton.clicked.connect(self.button_busy_clicked)
-        # self.sigBusy.connect(self._hr_logic.ask_busy)
-
         self._mw.laserLineBox.valueChanged.connect(self.laserline_box_changed)
         self._mw.wavelengthBox.valueChanged.connect(self.wavelength_box_changed)
         self._mw.energyBox.valueChanged.connect(self.energy_box_changed)
@@ -75,11 +69,6 @@ class Fhr1000Gui(GUIBase):
         #####################
         # starting the physical measurement
         self.update_boxes()
-
-        # self.readButton.clicked.connect(self.read)
-        # self.connect()
-
-        # self.laserLineBox.valueChanged.connect(self.onCurrentTextChanged)
 
     def show(self):
         """ Make window visible and put it above all other windows. """
@@ -103,11 +92,9 @@ class Fhr1000Gui(GUIBase):
         """
         if self._mw.wavelengthBox.hasFocus():
             self._mw.wavelengthBox.clearFocus()
-            self.log.warning("I'm going to move grating! (wavelength box value changed)")
             target = self._mw.wavelengthBox.value()
             self._fhr_logic.move_grating_nm(target)
         else:
-            # self.log.warning("Not in focus")
             pass
         self.update_boxes()
 
@@ -118,11 +105,9 @@ class Fhr1000Gui(GUIBase):
         """
         if self._mw.energyBox.hasFocus():
             self._mw.energyBox.clearFocus()
-            self.log.warning("I'm going to move grating! (energy box value changed)")
             target = 1239.84193 / self._mw.energyBox.value()  # convert from eV to nm
             self._fhr_logic.move_grating_nm(target)
         else:
-            # self.log.warning("Not in focus")
             pass
         self.update_boxes()
 
@@ -133,12 +118,10 @@ class Fhr1000Gui(GUIBase):
         """
         if self._mw.ramanShiftBox.hasFocus():
             self._mw.ramanShiftBox.clearFocus()
-            self.log.warning("I'm going to move grating! (raman shift box value changed)")
             laserline_nm = self._fhr_logic.laserline
             target = -(1e7*laserline_nm)/(-1e7+laserline_nm*self._mw.ramanShiftBox.value())  # from cm-1 to nm
             self._fhr_logic.move_grating_nm(target)
         else:
-            # self.log.warning("Not in focus")
             pass
         self.update_boxes()
 
@@ -149,12 +132,11 @@ class Fhr1000Gui(GUIBase):
         """
         if self._mw.slitWidthBox.hasFocus():
             self._mw.slitWidthBox.clearFocus()
-            self.log.warning("I'm going to move slit! (slit width box value changed)")
             target = self._mw.slitWidthBox.value()
             self._fhr_logic.move_slit_um(target)
         else:
-            # self.log.warning("Not in focus")
             pass
+        self.update_boxes()
 
     def update_boxes(self):
         """ Calculates and updates all the boxes with positions"""
