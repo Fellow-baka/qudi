@@ -5,20 +5,29 @@
 This hardware file contains control commands for FHR1000 spectrometer (HORIBA JOBIN YVON) but can be used to
 control any TRIAX spectrometer via serial interface using pyvisa.
 Before starting this code connect/initialize spectrometer via 'Hardware Configuration and Control' utility from
-JOBIN YVON. It will automatically
+JOBIN YVON. It will automatically perform autocalibration on entrance slit and grating motor if requested.
 
+Qudi is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Qudi is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Qudi. If not, see <http://www.gnu.org/licenses/>.
+
+Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
+top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-# qudi imports
-from core.module import Base, Connector
+from core.module import Base, ConfigOption
 from interface.spectrometer_interface import SpectrometerInterface
-
-# other imports
 import visa
 import time
-import math
-from itertools import chain
-from scipy import optimize
 
 # all the commands to play with spectrometer is just ascii sequences which we transfer through RS232 by pyvisa
 # read position in nm: "Z62"     Examples:     Input: "Z62,0\r"              Output: "o546.074\r"
@@ -41,6 +50,9 @@ class Fhr1000(Base, SpectrometerInterface):
     _modclass = 'fhr1000'
     _modtype = 'hardware'
 
+    _com_port_fhr1000 = ConfigOption('com_port_fhr1000', 'ASRL1::INSTR', missing='warn')
+    _autocalibrate_at_start = ConfigOption('autocalibrate_at_start', True, missing='warn')
+
     _spectrometer_handle = None  # handle to spectrometer
 
     # hrconnectlogic = Connector(interface='SpectrometerInterface')
@@ -55,15 +67,13 @@ class Fhr1000(Base, SpectrometerInterface):
         """ Deactivate module."""
         self.disconnect()
 
-    def connect(self, port='ASRL1::INSTR'):
+    def connect(self):
         """
         Connects to spectrometer.
-        :param string port: Serial port to connect. Default port is COM1.
         """
-        # TODO: Test "A" command for auto initialization without JOBIN YVON hardware thingy
         self.rm = visa.ResourceManager()
         try:
-            self._spectrometer_handle = self.rm.open_resource(port, baud_rate=19200, data_bits=8,
+            self._spectrometer_handle = self.rm.open_resource(self._com_port_fhr1000, baud_rate=19200, data_bits=8,
                                                               write_termination='\r', read_termination='\r')
         except:
             self.log.warning('Cannot connect to spectrometer! Check ports.')
@@ -72,7 +82,7 @@ class Fhr1000(Base, SpectrometerInterface):
         """ Closes serial connection with FHR1000."""
         self._spectrometer_handle.close()
 
-    def initialize(self):
+    def autocalibrate(self):
         """Auto initialize spectrometer. It can take over a minute thus timeout is increased to 100 s"""
         self._spectrometer_handle.timeout = 100000
         self._spectrometer_handle.write("A")
