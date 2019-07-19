@@ -2,8 +2,8 @@
 
 """
 This file contains hardware to control monochromator (hr640) for this case via serial interface.
+THe spectrometer's controller have no energy independed memory to save mono position, so it should be saved in file.
 """
-# TODO: compensate for 0.08 nm backlash
 
 # qudi imports
 from core.module import Base, Connector
@@ -13,7 +13,6 @@ from interface.spectrometer_interface import SpectrometerInterface
 import visa
 import time
 import math
-# import os
 from itertools import chain
 from scipy import optimize
 
@@ -28,7 +27,7 @@ from scipy import optimize
 #  busy: [58,2,0,0,63,58]
 
 # convert from bytes to wavelength in angstrom
-
+# TODO: compensate for 0.08 nm backlash
 # TODO: test different wait times for serial communication with HR
 # TODO: Should remove all the read_position() checks by saving current position in global variable somewhere? self.?
 # TODO: Check the extreme values of input parameters
