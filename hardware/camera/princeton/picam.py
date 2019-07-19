@@ -40,7 +40,14 @@ class Picam(Base, CameraInterface):
         pass
 
     def get_acquired_data(self):
-        return self.read_frames(1, 100000)[0][0]  # Return first frame TODO: Chose appropriate timeout
+        """Returns only a first ROI in first frame.
+            Reshape of returned array needed (at least for PyLoN BR 100) in case of image
+            due to unknown reasons. (Different firmwares?)"""
+        data = self.read_frames(1, 100000)[0][0]  # First ROI of first frame
+        if np.shape(data)[1] == 1 or np.shape(data)[0] == 1:  # Return as is if the data is one dimensional
+            return data
+        else:
+            return np.reshape(data, self.get_size()[::-1])
 
     def set_exposure(self, exposure):
         self.set_parameter("ExposureTime", exposure)
@@ -499,7 +506,7 @@ class Picam(Base, CameraInterface):
     def read_frames(self, n=1, timeout=100):
         """This function acquires N frames using Picam_Acquire. It waits till all frames have been collected before it returns.
 
-        :param int N: Number of frames to collect (>= 1, default=1). This number is essentially limited by the available memory.
+        :param int n: Number of frames to collect (>= 1, default=1). This number is essentially limited by the available memory.
         :param float timeout: Maximum wait time between frames in milliseconds (default=100). This parameter is important when using external triggering.
         :returns: List of acquired frames.
         """

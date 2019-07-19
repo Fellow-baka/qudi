@@ -177,7 +177,8 @@ class CCDGui(GUIBase):
         else:
             self._mw.image_PlotWidget.clear()
             data = np.rot90(data, axes=(1, 0))
-            image = pg.ImageItem(image=data, axisOrder='row-major')
+            # data = np.transpose(data)
+            image = pg.ImageItem(image=data)
             self._mw.image_PlotWidget.addItem(image)
 
         # old code for x-y data
