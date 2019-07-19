@@ -66,7 +66,7 @@ class Picam(Base, CameraInterface):
         pass
 
     def get_name(self):
-        return str(self.get_current_camera_id().sensor_name,'utf-8')
+        return str(self.get_current_camera_id().sensor_name, 'utf-8')
 
     def on_activate(self):
         # empty handle

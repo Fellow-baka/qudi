@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains a gui to show data from a simple data source.
+This file contains a gui to communicate with princeton instrument cameras.
+Allows to plot data and change acquisition parameters, e.g. exposition, binning, shutter state.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
