@@ -55,6 +55,11 @@ class Fhr1000(Base, SpectrometerInterface):
 
     _spectrometer_handle = None  # handle to spectrometer
 
+    # Default parameters of the spectrometer needed for pixel -> wavelength conversion
+    _grating = ConfigOption('grating', 1200, missing='warn')  # lines/mm, can be changed
+    _inclusion_angle = 11.5  # degrees
+    _focal_length = 1000  # mm
+
     # hrconnectlogic = Connector(interface='SpectrometerInterface')
 
     def on_activate(self):

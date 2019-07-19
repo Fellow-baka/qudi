@@ -6,7 +6,7 @@ THe spectrometer's controller have no energy independed memory to save mono posi
 """
 
 # qudi imports
-from core.module import Base, Connector
+from core.module import Base, ConfigOption
 from interface.spectrometer_interface import SpectrometerInterface
 
 # other imports
@@ -49,9 +49,14 @@ class Hr640(Base, SpectrometerInterface):
     _modclass = 'hr640'
     _modtype = 'hardware'
 
-    _hr_handle = None  # handle to spectrometer
+    _spectrometer_handle = None  # handle to spectrometer
 
     # hrconnectlogic = Connector(interface='SpectrometerInterface')
+
+    # Default parameters of the spectrometer needed for pixel -> wavelength conversion
+    _grating = ConfigOption('grating', 1200, missing='warn')  # lines/mm
+    _inclusion_angle = 17.351  # degrees
+    _focal_length = 640  # mm
 
     def on_activate(self):
         """ Activate module."""
@@ -61,28 +66,25 @@ class Hr640(Base, SpectrometerInterface):
         # self._hr_logic = self.hrconnectlogic()  # logic module
         self.load_speed_bytes()
 
-
     def on_deactivate(self):
         """ Deactivate module."""
         self.disconnect()
 
     def connect(self, port='ASRL1::INSTR'):
         """
-        Connects to spectrometer creating global variable.
+        Connects to spectrometer creating global variable. No termination is used.
         :param string port: Serial port to connect.
         """
-        # self.rm = visa.ResourceManager('@py')  # check if we have visa dlls in /system32/ @py for py realisation
-        # global ser
         self.rm = visa.ResourceManager()
         try:
-            self._hr_handle = self.rm.open_resource('ASRL1::INSTR', baud_rate=4800, data_bits=8,
-                                         write_termination=None, read_termination=None)
+            self._spectrometer_handle = self.rm.open_resource(port, baud_rate=4800, data_bits=8,
+                                                              write_termination=None, read_termination=None)
         except:
             self.log.warning('Cannot connect to instrument! Check ports. ')
 
     def disconnect(self):
         """ Closes serial connection with HR640. """
-        self._hr_handle.close()
+        self._spectrometer_handle.close()
 
     def convert_from_bytes_to_nm(self, wavelength_bytes):
         """
@@ -114,9 +116,9 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 97, 3, 63, 63, 63, 58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        read = self._hr_handle.read_bytes(8)
+        read = self._spectrometer_handle.read_bytes(8)
         time.sleep(self.delay)
         return [read[4], read[5], read[6]]
 
@@ -134,9 +136,9 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 116, 3, 63, 63, 63, 58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        read = self._hr_handle.read_bytes(8)
+        read = self._spectrometer_handle.read_bytes(8)
         time.sleep(self.delay)
         return [read[4], read[5], read[6]]
 
@@ -155,9 +157,9 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 0, 0, 63, 58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        read = self._hr_handle.read_bytes(6)
+        read = self._spectrometer_handle.read_bytes(6)
         time.sleep(self.delay)
         if read[4] == 98:
             return False
@@ -173,9 +175,9 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 115, 2, 63, 63, 58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        read = self._hr_handle.read_bytes(7)
+        read = self._spectrometer_handle.read_bytes(7)
         time.sleep(self.delay)
         return [read[4], read[5]]
 
@@ -186,9 +188,9 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 65, 3] + wavelength_bytes + [58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        self._hr_handle.read_bytes(7)
+        self._spectrometer_handle.read_bytes(7)
         time.sleep(self.delay)
 
     def load_position_nm(self, wavelength_nm):
@@ -199,9 +201,9 @@ class Hr640(Base, SpectrometerInterface):
         wavelength_bytes = self.convert_from_nm_to_bytes(wavelength_nm)
         arr = [58, 2, 65, 3] + wavelength_bytes + [58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        self._hr_handle.read_bytes(8)
+        self._spectrometer_handle.read_bytes(8)
         time.sleep(self.delay)
 
     def load_target_bytes(self, wavelength_bytes):
@@ -211,9 +213,9 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 84, 3] + wavelength_bytes + [58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        self._hr_handle.read_bytes(8)
+        self._spectrometer_handle.read_bytes(8)
         time.sleep(self.delay)
 
     def load_target_nm(self, wavelength_nm):
@@ -224,9 +226,9 @@ class Hr640(Base, SpectrometerInterface):
         wavelength_bytes = self.convert_from_nm_to_bytes(wavelength_nm)
         arr = [58, 2, 84, 3] + wavelength_bytes + [58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        self._hr_handle.read_bytes(8)
+        self._spectrometer_handle.read_bytes(8)
         time.sleep(self.delay)
 
     def load_speed_bytes(self, speed_bytes=[60, 0]):
@@ -237,28 +239,28 @@ class Hr640(Base, SpectrometerInterface):
         """
         arr = [58, 2, 83, 2] + speed_bytes + [58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        self._hr_handle.read_bytes(7)
+        self._spectrometer_handle.read_bytes(7)
         time.sleep(self.delay)
 
     def go(self):
         """ Start moving to target. Returns control immediately. """
         arr = [58, 2, 71, 0, 58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
-        self._hr_handle.read_bytes(5)
+        self._spectrometer_handle.read_bytes(5)
         time.sleep(self.delay)
 
     def go_busy(self):
         """ Start moving to target. Prints stuff while busy. """
         arr = [58, 2, 71, 0, 58]
         for i in arr:
-            self._hr_handle.write_raw(bytes([i]))
+            self._spectrometer_handle.write_raw(bytes([i]))
             time.sleep(self.delay)
         print("Moving", end="")
-        self._hr_handle.read_bytes(5)
+        self._spectrometer_handle.read_bytes(5)
         time.sleep(self.delay)
         while self.is_busy():
             time.sleep(self.delay)
