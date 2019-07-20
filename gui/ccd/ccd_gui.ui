@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>950</width>
+    <width>879</width>
     <height>521</height>
    </rect>
   </property>
@@ -19,7 +19,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>950</width>
+     <width>879</width>
      <height>21</height>
     </rect>
    </property>
@@ -85,6 +85,9 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="windowTitle">
+    <string>CCD parameters</string>
+   </property>
    <attribute name="dockWidgetArea">
     <number>4</number>
    </attribute>
@@ -134,7 +137,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>Focus(s):</string>
+      <string>Focus (s):</string>
      </property>
     </widget>
     <widget class="QLabel" name="acquisition_label">
@@ -176,23 +179,26 @@
       <number>1</number>
      </property>
     </widget>
-    <widget class="QLabel" name="ROI_label_2">
+    <widget class="QLabel" name="ROI_label">
      <property name="geometry">
       <rect>
-       <x>130</x>
-       <y>20</y>
-       <width>131</width>
-       <height>16</height>
+       <x>160</x>
+       <y>10</y>
+       <width>101</width>
+       <height>20</height>
       </rect>
      </property>
      <property name="text">
-      <string>ROI(x0,x_max,y0,y_max)</string>
+      <string>ROI</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
     </widget>
     <widget class="QSpinBox" name="roi_x0_spinBox">
      <property name="geometry">
       <rect>
-       <x>130</x>
+       <x>160</x>
        <y>40</y>
        <width>51</width>
        <height>22</height>
@@ -208,7 +214,7 @@
     <widget class="QSpinBox" name="roi_x_max_spinBox">
      <property name="geometry">
       <rect>
-       <x>180</x>
+       <x>210</x>
        <y>40</y>
        <width>51</width>
        <height>22</height>
@@ -224,7 +230,7 @@
     <widget class="QSpinBox" name="roi_y0_spinBox">
      <property name="geometry">
       <rect>
-       <x>130</x>
+       <x>160</x>
        <y>60</y>
        <width>51</width>
        <height>22</height>
@@ -240,7 +246,7 @@
     <widget class="QSpinBox" name="roi_y_max_spinBox">
      <property name="geometry">
       <rect>
-       <x>180</x>
+       <x>210</x>
        <y>60</y>
        <width>51</width>
        <height>22</height>
@@ -256,15 +262,130 @@
     <widget class="QCheckBox" name="bin_checkBox">
      <property name="geometry">
       <rect>
-       <x>240</x>
-       <y>50</y>
+       <x>160</x>
+       <y>90</y>
        <width>51</width>
        <height>17</height>
       </rect>
      </property>
+     <property name="toolTip">
+      <string>Hardware binning of all the pixels along y axis.
+Displays data as one-dimensional spectrum.
+</string>
+     </property>
      <property name="text">
       <string>Bin y?</string>
      </property>
+    </widget>
+    <widget class="QCheckBox" name="flip_x_checkBox">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>90</y>
+       <width>51</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="toolTip">
+      <string>Flips (mirrors) data from the ccd in x direction (horizontal).</string>
+     </property>
+     <property name="text">
+      <string>Flip x?</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="ROI_label_x">
+     <property name="geometry">
+      <rect>
+       <x>141</x>
+       <y>40</y>
+       <width>20</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>x</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="ROI_label_y">
+     <property name="geometry">
+      <rect>
+       <x>141</x>
+       <y>60</y>
+       <width>20</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>y</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="ROI_label_min">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>min</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="ROI_label_max">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>20</y>
+       <width>51</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>max</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="energy_selector_comboBox">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>120</y>
+       <width>101</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>Pixel</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Raman shift (cm-1)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Nanometer</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Electronvolt</string>
+      </property>
+     </item>
     </widget>
    </widget>
   </widget>

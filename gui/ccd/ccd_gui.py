@@ -55,7 +55,7 @@ class CCDGui(GUIBase):
     _modclass = 'ccdgui'
     _modtype = 'gui'
 
-    ## declare connectors
+    # declare connectors
     ccdd = Connector(interface='CCDLogic')
 
     sigFocusStart = QtCore.Signal()
@@ -64,6 +64,7 @@ class CCDGui(GUIBase):
     sigAcquisitionStop = QtCore.Signal()
 
     _image = []
+    _is_x_flipped = False
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -135,6 +136,7 @@ class CCDGui(GUIBase):
         self._mw.roi_y_max_spinBox.editingFinished.connect(self.roi_changed)
 
         self._mw.bin_checkBox.stateChanged.connect(self.bin_clicked)
+        self._mw.flip_checkBox.stateChanged.connect(self.flip_clicked)
 
 
         #####################
@@ -174,6 +176,9 @@ class CCDGui(GUIBase):
             TODO: Double check if the data flipped/rotated properly.
         """
         data = self._ccd_logic.buf_spectrum
+        if self._is_x_flipped:
+            np.flip(data)
+
         if data.shape[0] == 1:
             data = np.flip(data[0])
             # x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
@@ -232,6 +237,12 @@ class CCDGui(GUIBase):
         else:
             self._ccd_logic.set_parameter("bin", 1)
 
+    def flip_clicked(self, state):
+        if state == QtCore.Qt.Checked:
+            self._is_x_flipped = True
+        else:
+            self._is_x_flipped = False
+        self.update_data()
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

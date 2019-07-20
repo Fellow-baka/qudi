@@ -145,5 +145,3 @@ class CCDLogic(GenericLogic):
         w_prime = [(d / m) * (np.sin(alpha) + np.sin(beta_prime_n)) * 1e9 + offset_nm for beta_prime_n in beta_prime]
 
         return w_prime
-
-
