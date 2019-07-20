@@ -70,7 +70,7 @@ class CCDLogic(GenericLogic):
         # self.module_state.lock()
         self._hardware._exposure = self._acquisition_exposure
         self._hardware.start_single_acquisition()
-        self.buf_spectrum = self._hardware.get_acquired_data()
+        self.buf_spectrum = np.rot90(self._hardware.get_acquired_data(), axes=(1, 0))
         self.sigUpdateDisplay.emit()
         self.sigAcquisitionFinished.emit()
 
@@ -94,7 +94,7 @@ class CCDLogic(GenericLogic):
             self.module_state.unlock()
             return
 
-        self.buf_spectrum = self._hardware.get_acquired_data()
+        self.buf_spectrum = np.rot90(self._hardware.get_acquired_data(), axes=(1, 0))
         self.sigRepeat.emit()
 
     def set_parameter(self, par, value):

@@ -171,21 +171,17 @@ class CCDGui(GUIBase):
     def update_data(self):
         """ The function that grabs the data and sends it to the plot.
             If the data is 1D send it to spectrum widget, if not to image
+            TODO: Double check if the data flipped/rotated properly.
         """
         data = self._ccd_logic.buf_spectrum
-        if data.shape[1] == 1:
-            x_axis = self._ccd_logic.convert_from_pixel_to_nm(502.56, 0)
-            self._curve1.setData(x=np.arange(1, data.shape[0]+1, 1), y=data[:, 0])
-            self._curve1.setData(x=x_axis, y=data[:, 0])
+        if data.shape[0] == 1:
+            data = np.flip(data[0])
+            # x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
+            self._curve1.setData(x=np.arange(1, data.size+1, 1), y=data)
         else:
             self._mw.image_PlotWidget.clear()
-            data = np.rot90(data, axes=(1, 0))
-            # data = np.transpose(data)
             image = pg.ImageItem(image=data)
             self._mw.image_PlotWidget.addItem(image)
-
-        # old code for x-y data
-        # self._curve1.setData(x=data[0, :], y=data[1, :])
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """
