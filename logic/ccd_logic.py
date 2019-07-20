@@ -98,7 +98,7 @@ class CCDLogic(GenericLogic):
         self.sigRepeat.emit()
 
     def set_parameter(self, par, value):
-        self.log.warning(f"Changing parameter {par} to value {value}")
+        self.log.info(f"Changing parameter {par} to value {value}")
         if par == "focus_exposure":
             self._focus_exposure = value
             self._hardware.set_exposure(value * 1000)  # Convert from seconds (in gui) to miliseconds

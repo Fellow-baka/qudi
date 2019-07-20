@@ -136,7 +136,7 @@ class CCDGui(GUIBase):
         self._mw.roi_y_max_spinBox.editingFinished.connect(self.roi_changed)
 
         self._mw.bin_checkBox.stateChanged.connect(self.bin_clicked)
-        self._mw.flip_checkBox.stateChanged.connect(self.flip_clicked)
+        self._mw.flip_x_checkBox.stateChanged.connect(self.flip_clicked)
 
 
         #####################
@@ -177,7 +177,7 @@ class CCDGui(GUIBase):
         """
         data = self._ccd_logic.buf_spectrum
         if self._is_x_flipped:
-            np.flip(data)
+            data = np.flip(data)
 
         if data.shape[0] == 1:
             data = np.flip(data[0])
@@ -238,6 +238,9 @@ class CCDGui(GUIBase):
             self._ccd_logic.set_parameter("bin", 1)
 
     def flip_clicked(self, state):
+        """
+        Changes the variable responsible for horizontal flipping the data. Updates spectrum/image afterwards.
+        """
         if state == QtCore.Qt.Checked:
             self._is_x_flipped = True
         else:
