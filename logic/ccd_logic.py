@@ -113,29 +113,36 @@ class CCDLogic(GenericLogic):
         else:
             pass
 
-    def convert_from_pixel_to_nm(self, w_mid_nm, offset):
+    def convert_from_pixel_to_nm(self, w_mid_nm, offset_nm=0):
         """
         Creates list of wavelengts to plot spectra/image in gui.
         Asks CCD for the size of the chip and pixel size.
         Asks monochromator for inclusion angle, grating, diffraction order and focal length.
-        Works only with full chip x. TODO: Make it possible to work with arbitrary number of pixels.
-        :param float w_mid_nm: Wavelength at the middle of ccd. Corresponds to position of the grating.
+        Works only with full chip x.
+        Output in nm.
+        TODO: Make it possible to work with arbitrary number of pixels.
+        TODO: Ask hardware details from monochromtor.
+        :param float w_mid_nm: Wavelength at the middle of ccd in nm. Corresponds to position of the grating.
         :param float offset: Offset
         """
-        d = 1 / (self._hardware._grating * 1000)  # distance between lines of the grating
-        incluison = np.deg2rad(self._hardware._inclusion_angle)
-        f = self._hardware._focal_length
-        x = 0.02  # size of the pixel in mm
+        # d = 1 / (self._hardware._grating * 1000)  # distance between lines of the grating
+        # incluison = np.deg2rad(self._hardware._inclusion_angle)
+        # f = self._hardware._focal_length
+        d = 1 / (1200 * 1000)  # distance between lines of the grating
+        inclusion = np.deg2rad(17.351)
+        f = 640
+        x = self._hardware.get_parameter("PixelWidth") / 1000  # um -> mm
         m = 1  # diffraction order
         delta = 0  # deviation of the CCD from the plane, will be used later
+        w_mid_m = w_mid_nm * 1e-9  # nm -> m
         pixels = np.arange(-1340/2, 1340/2, 1)
 
         xi = [np.arctan((n * x * np.cos(delta))/(f + n * x * np.sin(delta))) for n in pixels]
-        psi = np.arcsin((m * w_mid_nm)/(2 * d * np.cos(incluison/2)))
-        alpha = psi - incluison / 2
-        beta_prime = [psi + incluison / 2 + xi_n for xi_n in xi]
+        psi = np.arcsin((m * w_mid_m)/(2 * d * np.cos(inclusion/2)))
+        alpha = psi - inclusion / 2
+        beta_prime = [psi + inclusion / 2 + xi_n for xi_n in xi]
 
-        w_prime = [(d / m) * (np.sin(alpha) + np.sin(beta_prime_n)) for beta_prime_n in beta_prime]
+        w_prime = [(d / m) * (np.sin(alpha) + np.sin(beta_prime_n)) * 1e9 + offset_nm for beta_prime_n in beta_prime]
 
         return w_prime
 

@@ -174,7 +174,9 @@ class CCDGui(GUIBase):
         """
         data = self._ccd_logic.buf_spectrum
         if data.shape[1] == 1:
+            x_axis = self._ccd_logic.convert_from_pixel_to_nm(502.56, 0)
             self._curve1.setData(x=np.arange(1, data.shape[0]+1, 1), y=data[:, 0])
+            self._curve1.setData(x=x_axis, y=data[:, 0])
         else:
             self._mw.image_PlotWidget.clear()
             data = np.rot90(data, axes=(1, 0))
