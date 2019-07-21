@@ -134,6 +134,11 @@ class Hr640Logic(GenericLogic):
             lambda x: self.coeffs[0] + self.coeffs[1] * x + self.coeffs[2] * x ** 2
             + self.coeffs[3] * x ** 3 - wavelength_nm * 10, 5000) / 10  # nm to A
 
+    def read_wavelength_nm(self):
+        """Reads absolute position and applies correction.
+        :return float: Corrected wavelength in nm."""
+        return self.absolute_position_to_wavelength(self._hardware.read_position_nm())
+
     #####################################
     # interaction with gui and instrument
     #####################################

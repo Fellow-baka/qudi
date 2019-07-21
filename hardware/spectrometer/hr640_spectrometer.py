@@ -32,6 +32,7 @@ from scipy import optimize
 # TODO: Should remove all the read_position() checks by saving current position in global variable somewhere? self.?
 # TODO: Check the extreme values of input parameters
 # TODO: Flush input/output!
+# TODO: Put all filereads and wavelength corrections stuff to logic!.
 
 
 class Hr640(Base, SpectrometerInterface):

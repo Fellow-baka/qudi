@@ -34,6 +34,7 @@ class CCDLogic(GenericLogic):
     _modtype = 'logic'
 
     simpledata = Connector(interface='SimpleDataInterface')
+    monochromator = Connector(interface='CCDLogic')
 
     sigRepeat = QtCore.Signal()
     sigAquired = QtCore.Signal()
@@ -53,6 +54,7 @@ class CCDLogic(GenericLogic):
         """ Prepare logic module for work.
         """
         self._hardware = self.simpledata()
+        self._mono = self.monochromator()
         self.resolution_x = self._hardware.get_size()[0]
         self.resolution_y = self._hardware.get_size()[1]
         self._roi = [0, self.resolution_x, 1, 0, self.resolution_y, 1]
