@@ -65,6 +65,7 @@ class CCDGui(GUIBase):
 
     _image = []
     _is_x_flipped = False
+    _x_axis_mode = "Pixels"
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -95,9 +96,15 @@ class CCDGui(GUIBase):
         self._curve1 = self._sw.plot()
         self._curve1.setPen(palette.c1, width=2)
 
+        self._sw.setLabel('bottom', 'Energy', units='Pixels')
+        self._sw.setLabel('left', 'Intensity', units='Counts')
+
         # image
         self._iw = self._mw.image_PlotWidget  # pg.PlotWidget(name='Counter1')
         self._plot_image = self._iw.plotItem
+
+        self._sw.setLabel('bottom', 'x axis', units='Pixels')
+        self._sw.setLabel('left', 'y axis', units='Pixels')
 
         # create a new ViewBox, link the right axis to its coordinate system
         # self._right_axis = pg.ViewBox()
@@ -106,14 +113,12 @@ class CCDGui(GUIBase):
         # self._plot_item.getAxis('right').linkToView(self._right_axis)
         # self._right_axis.setXLink(self._plot_item)
 
-
         # make correct button state
         self._mw.focus_Action.setChecked(False)
 
         # load boxes states
         self._mw.focus_doubleSpinBox.setValue(self._ccd_logic._focus_exposure)
         # self._mw.acquisition_doubleSpinBox.editingFinished.connect(self.acquisition_time_changed)
-
 
         #####################
         # Connecting user interactions
@@ -122,7 +127,6 @@ class CCDGui(GUIBase):
         self._mw.focus_Action.triggered.connect(self.focus_clicked)  # Start/stop focus mode
         self._mw.acquisition_Action.triggered.connect(self.acquisition_clicked)  # Start single spectra/image
         self._mw.save_Action.triggered.connect(self.save_clicked)
-
 
         # Boxes
         # Time and number
@@ -138,6 +142,8 @@ class CCDGui(GUIBase):
         self._mw.bin_checkBox.stateChanged.connect(self.bin_clicked)
         self._mw.flip_x_checkBox.stateChanged.connect(self.flip_clicked)
 
+        # Other stuff
+        self._mw.energy_selector_comboBox.currentIndexChanged.connect(self.energy_unit_changed)
 
         #####################
         # starting the physical measurement
@@ -172,17 +178,23 @@ class CCDGui(GUIBase):
 
     def update_data(self):
         """ The function that grabs the data and sends it to the plot.
-            If the data is 1D send it to spectrum widget, if not to image
+            If the data is 1D send it to spectrum widget, if not to image.
+            Asks logic module to convert x-axis to target units, changing axis labels.
             TODO: Double check if the data flipped/rotated properly.
         """
         data = self._ccd_logic.buf_spectrum
         if self._is_x_flipped:
             data = np.flip(data)
 
+        if self._x_axis_mode == "Pixels":
+            x_axis = np.arange(1, data.size+1, 1)
+        if self._x_axis_mode == "Wavelength (nm)":
+            x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
+
         if data.shape[0] == 1:
             data = np.flip(data[0])
             # x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
-            self._curve1.setData(x=np.arange(1, data.size+1, 1), y=data)
+            self._curve1.setData(x=x_axis, y=data)
         else:
             self._mw.image_PlotWidget.clear()
             image = pg.ImageItem(image=data)
@@ -229,7 +241,7 @@ class CCDGui(GUIBase):
         self._ccd_logic._roi[1] = self._mw.roi_x_max_spinBox.value() - self._mw.roi_x0_spinBox.value()
         self._ccd_logic._roi[3] = self._mw.roi_y0_spinBox.value()
         self._ccd_logic._roi[4] = self._mw.roi_y_max_spinBox.value() - self._mw.roi_y0_spinBox.value()
-        self._ccd_logic.set_parameter("roi", "baka")
+        self._ccd_logic.set_parameter("roi", "baka")  # TODO: check what this line is doing.
 
     def bin_clicked(self, state):
         if state == QtCore.Qt.Checked:
@@ -246,6 +258,19 @@ class CCDGui(GUIBase):
         else:
             self._is_x_flipped = False
         self.update_data()
+
+    def energy_unit_changed(self, index):
+        box_text = self._mw.energy_selector_comboBox.currentText()
+        self.log.info(f"Selected x axis units: {box_text}")
+        # if index == 0:
+        #     pass
+        #     # self.log.info(f"Selected x axis units: {box_text}")
+        # elif index == 1:
+        #     pass
+        #     # self.log.info(f"{self._mw.energy_selector_comboBox.currentText()}")
+        # elif index == 2:
+        #     pass
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

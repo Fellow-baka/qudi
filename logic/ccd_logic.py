@@ -147,3 +147,23 @@ class CCDLogic(GenericLogic):
         w_prime = [(d / m) * (np.sin(alpha) + np.sin(beta_prime_n)) * 1e9 + offset_nm for beta_prime_n in beta_prime]
 
         return w_prime
+
+    def convert_energy_units(self, data_array=[], out_unit="nm"):
+        """
+        Converts recieved array in nm to array in other units.
+        :param out_unit: Chosen units
+        :param data_array: array of values in nm needed to be converted to target units.
+        :return: Array of the target units
+        """
+        if out_unit == "nm":
+            return data_array
+        elif out_unit == "Raman shift (cm-1)":
+            # laserline_nm = 488
+            laserline_nm = self._monochromator._laserline
+            return [(1 / laserline_nm - 1 / x) * 1e7 for x in data_array]
+        elif out_unit == "Energy (eV)":
+            return [1239.84193 / x for x in data_array]
+        elif out_unit == "Wavenumber (cm-1)":
+            return [1e7 / x for x in data_array]
+        elif out_unit == "Frequency (THz)":
+            return [299_792.458 / x for x in data_array]
