@@ -33,6 +33,7 @@ from gui.colordefs import QudiPalettePale as palette
 from qtpy import QtWidgets
 from qtpy import QtCore
 from qtpy import uic
+from qtpy import QtGui
 
 
 class CCDMainWindow(QtWidgets.QMainWindow):
@@ -102,15 +103,23 @@ class CCDGui(GUIBase):
         self._plot_spectrum.setLabel('bottom', 'x-axis (Pixels)')
         self._plot_spectrum.setLabel('left', 'Intensity (Counts)')
 
-        # image
-        self._iw = self._mw.image_PlotWidget  # pg.PlotWidget(name='Counter1')
-        self._plot_image = self._iw.plotItem
+        # image (old version with PlotWidget)
+        # self._iw = self._mw.image_PlotWidget  # pg.PlotWidget(name='Counter1')
+        # self._plot_image = self._iw.plotItem
 
-        self._plot_image.showAxis('top')
-        self._plot_image.showAxis('right')
+        # image (New version with pg.ImageView)
+        self._iw = pg.ImageView(view=pg.PlotItem())
+        self._mw.widget = QtGui.QWidget()
+        self._mw.widget.setLayout(QtGui.QHBoxLayout())
+        self._mw.widget.layout().addWidget(self._iw)
+        self._mw.image2DockWidget.setWidget(self._iw)
+        # self._iw.setImage(np.random.random((256, 256)))
 
-        self._plot_image.setLabel('bottom', 'x-axis (Pixels)')
-        self._plot_image.setLabel('left', 'y axis (Pixels)')
+        self._iw.view.showAxis('top')
+        self._iw.view.showAxis('right')
+
+        self._iw.view.setLabel('bottom', 'x-axis (Pixels)')
+        self._iw.view.setLabel('left', 'y-axis (Pixels)')
 
         # create a new ViewBox, link the right axis to its coordinate system
         # self._right_axis = pg.ViewBox()
@@ -162,11 +171,6 @@ class CCDGui(GUIBase):
         # self.sigAcquisitionStop.connect(self._ccd_logic.start_single_acquisition)
 
         self._ccd_logic.sigRepeat.connect(self.update_data)
-
-        # some tests with image window
-        raw_data_image = None
-        self._image = pg.ImageItem(image=raw_data_image, axisOrder='row-major')
-        self._mw.image_PlotWidget.setAspectLocked(True)
 
     def show(self):
         """Make window visible and put it above all other windows.
@@ -246,8 +250,8 @@ class CCDGui(GUIBase):
         else:
             self._curve1.clear()
             self._iw.clear()
-            image = pg.ImageItem(image=data, x=np.arange(50, data.size+50, 1))
-            self._iw.addItem(image)
+            # image = pg.ImageItem(image=data)  #, x=np.arange(50, data.size+50, 1))
+            self._iw.setImage(data)
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """

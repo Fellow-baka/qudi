@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>879</width>
-    <height>521</height>
+    <width>1045</width>
+    <height>631</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>879</width>
+     <width>1045</width>
      <height>21</height>
     </rect>
    </property>
@@ -68,21 +68,6 @@
    <addaction name="focus_Action"/>
    <addaction name="acquisition_Action"/>
    <addaction name="save_Action"/>
-  </widget>
-  <widget class="QDockWidget" name="imageDockWidget">
-   <property name="windowTitle">
-    <string>Image</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>8</number>
-   </attribute>
-   <widget class="QWidget" name="imageDockWidgetContents">
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="2" column="1" colspan="2">
-      <widget class="PlotWidget" name="image_PlotWidget"/>
-     </item>
-    </layout>
-   </widget>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
    <property name="windowTitle">
@@ -269,9 +254,7 @@
       </rect>
      </property>
      <property name="toolTip">
-      <string>Hardware binning of all the pixels along y axis.
-Displays data as one-dimensional spectrum.
-</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hardware binning of all the pixels along y axis.&lt;/p&gt;&lt;p&gt;Displays data as one-dimensional spectrum.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="text">
       <string>Bin y?</string>
@@ -396,6 +379,23 @@ Displays data as one-dimensional spectrum.
        <string>Frequency (THz)</string>
       </property>
      </item>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="image2DockWidget">
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_4">
+    <widget class="QWidget" name="widget" native="true">
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>30</y>
+       <width>921</width>
+       <height>211</height>
+      </rect>
+     </property>
     </widget>
    </widget>
   </widget>
