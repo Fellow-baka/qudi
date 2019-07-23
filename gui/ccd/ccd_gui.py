@@ -65,7 +65,7 @@ class CCDGui(GUIBase):
 
     _image = []
     _is_x_flipped = False
-    _x_axis_mode = "Pixels"
+    _x_axis_mode = "Pixel"
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -96,15 +96,21 @@ class CCDGui(GUIBase):
         self._curve1 = self._sw.plot()
         self._curve1.setPen(palette.c1, width=2)
 
-        self._sw.setLabel('bottom', 'Energy', units='Pixels')
-        self._sw.setLabel('left', 'Intensity', units='Counts')
+        self._plot_spectrum.showAxis('top')
+        self._plot_spectrum.showAxis('right')
+
+        self._plot_spectrum.setLabel('bottom', 'x-axis (Pixels)')
+        self._plot_spectrum.setLabel('left', 'Intensity (Counts)')
 
         # image
         self._iw = self._mw.image_PlotWidget  # pg.PlotWidget(name='Counter1')
         self._plot_image = self._iw.plotItem
 
-        self._sw.setLabel('bottom', 'x axis', units='Pixels')
-        self._sw.setLabel('left', 'y axis', units='Pixels')
+        self._plot_image.showAxis('top')
+        self._plot_image.showAxis('right')
+
+        self._plot_image.setLabel('bottom', 'x-axis (Pixels)')
+        self._plot_image.setLabel('left', 'y axis (Pixels)')
 
         # create a new ViewBox, link the right axis to its coordinate system
         # self._right_axis = pg.ViewBox()
@@ -183,22 +189,65 @@ class CCDGui(GUIBase):
             TODO: Double check if the data flipped/rotated properly.
         """
         data = self._ccd_logic.buf_spectrum
-        if self._is_x_flipped:
-            data = np.flip(data)
+        # data = np.rot90(data)
 
-        if self._x_axis_mode == "Pixels":
-            x_axis = np.arange(1, data.size+1, 1)
+        if self._is_x_flipped:
+            if data.shape[0] == 1:
+                data = np.fliplr(data)
+            else:
+                data = np.flipud(data)
+
+        # TODO: refactor this later
         if self._x_axis_mode == "Wavelength (nm)":
-            x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
+            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
+                self._ccd_logic._mono._hardware.read_position_nm())
+            x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
+            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
+        elif self._x_axis_mode == "Raman shift (cm-1)":
+            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
+                self._ccd_logic._mono._hardware.read_position_nm())
+            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
+            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Raman shift (cm-1)")
+            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
+        elif self._x_axis_mode == "Energy (eV)":
+            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
+                self._ccd_logic._mono._hardware.read_position_nm())
+            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
+            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Energy (eV)")
+            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
+        elif self._x_axis_mode == "Wavenumber (cm-1)":
+            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
+                self._ccd_logic._mono._hardware.read_position_nm())
+            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
+            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Wavenumber (cm-1)")
+            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
+        elif self._x_axis_mode == "Frequency (THz)":
+            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
+                self._ccd_logic._mono._hardware.read_position_nm())
+            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
+            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Frequency (THz)")
+            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
+        else:  # Pixels
+            x_axis = np.arange(1, data.size+1, 1)
+            self._plot_spectrum.setLabel('bottom', 'X-axis (Pixels)')
+            # self._plot_image.setLabel('bottom', 'X-axis (Pixels)')
 
         if data.shape[0] == 1:
-            data = np.flip(data[0])
+            self._iw.clear()
+            data = np.fliplr(data)
+            data = data[0]
             # x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
             self._curve1.setData(x=x_axis, y=data)
         else:
-            self._mw.image_PlotWidget.clear()
-            image = pg.ImageItem(image=data)
-            self._mw.image_PlotWidget.addItem(image)
+            self._curve1.clear()
+            self._iw.clear()
+            image = pg.ImageItem(image=data, x=np.arange(50, data.size+50, 1))
+            self._iw.addItem(image)
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """
@@ -262,6 +311,8 @@ class CCDGui(GUIBase):
     def energy_unit_changed(self, index):
         box_text = self._mw.energy_selector_comboBox.currentText()
         self.log.info(f"Selected x axis units: {box_text}")
+        self._x_axis_mode = box_text
+        self.update_data()
         # if index == 0:
         #     pass
         #     # self.log.info(f"Selected x axis units: {box_text}")
