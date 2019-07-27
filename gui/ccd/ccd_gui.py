@@ -193,7 +193,6 @@ class CCDGui(GUIBase):
             TODO: Double check if the data flipped/rotated properly.
         """
         data = self._ccd_logic.buf_spectrum
-        # data = np.rot90(data)
 
         if self._is_x_flipped:
             if data.shape[0] == 1:
@@ -201,57 +200,46 @@ class CCDGui(GUIBase):
             else:
                 data = np.flipud(data)
 
-        # TODO: refactor this later
-        if self._x_axis_mode == "Wavelength (nm)":
-            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
-                self._ccd_logic._mono._hardware.read_position_nm())
-            x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
-            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
-        elif self._x_axis_mode == "Raman shift (cm-1)":
+        # Convert to target units and change labels
+        if self._x_axis_mode != "Pixel":
             wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
                 self._ccd_logic._mono._hardware.read_position_nm())
             x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
-            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Raman shift (cm-1)")
+            x_axis = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
             self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
-        elif self._x_axis_mode == "Energy (eV)":
-            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
-                self._ccd_logic._mono._hardware.read_position_nm())
-            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
-            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Energy (eV)")
-            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
-        elif self._x_axis_mode == "Wavenumber (cm-1)":
-            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
-                self._ccd_logic._mono._hardware.read_position_nm())
-            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
-            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Wavenumber (cm-1)")
-            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
-        elif self._x_axis_mode == "Frequency (THz)":
-            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
-                self._ccd_logic._mono._hardware.read_position_nm())
-            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
-            x_axis = self._ccd_logic.convert_energy_units(x_nm, "Frequency (THz)")
-            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            # self._plot_image.setLabel('bottom', f'{self._x_axis_mode}')
+            self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
         else:  # Pixels
-            x_axis = np.arange(1, data.size+1, 1)
+            x_axis = np.arange(1, data.shape[1]+1, 1)
             self._plot_spectrum.setLabel('bottom', 'X-axis (Pixels)')
-            # self._plot_image.setLabel('bottom', 'X-axis (Pixels)')
+            self._iw.view.setLabel('bottom', 'X-axis (Pixels)')
 
-        if data.shape[0] == 1:
+        if data.shape[0] == 1:                  # Spectrum mode
             self._iw.clear()
             data = np.fliplr(data)
             data = data[0]
-            # x_axis = np.array(self._ccd_logic.convert_from_pixel_to_nm(502.56, 0))
             self._curve1.setData(x=x_axis, y=data)
-        else:
+            if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
+                self._sw.invertX(True)
+            else:
+                self._sw.invertX(False)
+            self._sw.plotItem.autoRange()
+        else:                                   # Image mode
             self._curve1.clear()
             self._iw.clear()
-            # image = pg.ImageItem(image=data)  #, x=np.arange(50, data.size+50, 1))
             self._iw.setImage(data)
+            if self._x_axis_mode != 'Pixel':
+                self._iw.imageItem.resetTransform()
+                self._iw.imageItem.translate(x_axis[0], 0)
+                self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/data.shape[0], 1)
+                self._iw.view.getViewBox().invertY(False)
+                self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=data.shape[0] / (x_axis[-1] - x_axis[0]))
+            if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
+                self._iw.view.getViewBox().invertX(True)
+                self._iw.view.getViewBox().invertY(True)
+            else:
+                self._iw.view.getViewBox().invertX(False)
+                self._iw.view.getViewBox().invertY(False)
+            self._iw.autoRange()
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """

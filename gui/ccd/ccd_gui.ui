@@ -371,6 +371,11 @@
      </item>
      <item>
       <property name="text">
+       <string>Energy (meV)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
        <string>Wavenumber (cm-1)</string>
       </property>
      </item>
