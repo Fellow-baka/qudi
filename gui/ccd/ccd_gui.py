@@ -202,8 +202,7 @@ class CCDGui(GUIBase):
 
         # Convert to target units and change labels
         if self._x_axis_mode != "Pixel":
-            wavelength_middle = self._ccd_logic._mono.absolute_position_to_wavelength(
-                self._ccd_logic._mono._hardware.read_position_nm())
+            wavelength_middle = self._ccd_logic._mono._current_wavelength_nm
             x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
             x_axis = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
             self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')

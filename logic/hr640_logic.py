@@ -27,6 +27,7 @@ class Hr640Logic(GenericLogic):
     hardware = Connector(interface='SpectrometerInterface')
 
     # status variables
+    _current_wavelength_nm = None
 
     def __init__(self, **kwargs):
         """ Create SpectrometerLogic object with connectors.
@@ -48,6 +49,7 @@ class Hr640Logic(GenericLogic):
         self.absolute_position = self.get_absolute_position_from_file()
         self.coeffs = self.get_coefficients_from_file()
 
+        self._current_wavelength_nm = self.read_wavelength_nm()
         # self.wavelength = self.absolute_position_to_wavelength(self.absolute_position)
 
     def on_deactivate(self):
@@ -171,3 +173,4 @@ class Hr640Logic(GenericLogic):
             self.absolute_position = target_nm
         else:
             pass
+        self._current_wavelength_nm = self.read_wavelength_nm()
