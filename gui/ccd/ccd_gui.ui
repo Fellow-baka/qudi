@@ -373,17 +373,27 @@ Displays data as one-dimensional spectrum.
      </item>
      <item>
       <property name="text">
+       <string>Wavelength (nm)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
        <string>Raman shift (cm-1)</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>Nanometer</string>
+       <string>Energy (eV)</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>Electronvolt</string>
+       <string>Wavenumber (cm-1)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Frequency (THz)</string>
       </property>
      </item>
     </widget>

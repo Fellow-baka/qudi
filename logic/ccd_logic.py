@@ -73,6 +73,7 @@ class CCDLogic(GenericLogic):
         self._hardware._exposure = self._acquisition_exposure
         self._hardware.start_single_acquisition()
         self.buf_spectrum = np.rot90(self._hardware.get_acquired_data(), axes=(1, 0))
+        # self.buf_spectrum = self._hardware.get_acquired_data()
         self.sigUpdateDisplay.emit()
         self.sigAcquisitionFinished.emit()
 
@@ -159,7 +160,7 @@ class CCDLogic(GenericLogic):
             return data_array
         elif out_unit == "Raman shift (cm-1)":
             # laserline_nm = 488
-            laserline_nm = self._monochromator._laserline
+            laserline_nm = self._mono.laserline
             return [(1 / laserline_nm - 1 / x) * 1e7 for x in data_array]
         elif out_unit == "Energy (eV)":
             return [1239.84193 / x for x in data_array]
