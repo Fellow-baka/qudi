@@ -67,6 +67,7 @@ class CCDGui(GUIBase):
     _image = []
     _is_x_flipped = False
     _x_axis_mode = "Pixel"
+    _constant_background = 0
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -148,7 +149,7 @@ class CCDGui(GUIBase):
         self._mw.focus_doubleSpinBox.editingFinished.connect(self.focus_time_changed)
         self._mw.acquisition_doubleSpinBox.editingFinished.connect(self.acquisition_time_changed)
 
-        # ROI spinboxes and checkbox
+        # ROI and chip spinboxes and checkbox
         self._mw.roi_x0_spinBox.editingFinished.connect(self.roi_changed)
         self._mw.roi_x_max_spinBox.editingFinished.connect(self.roi_changed)
         self._mw.roi_y0_spinBox.editingFinished.connect(self.roi_changed)
@@ -156,6 +157,9 @@ class CCDGui(GUIBase):
 
         self._mw.bin_checkBox.stateChanged.connect(self.bin_clicked)
         self._mw.flip_x_checkBox.stateChanged.connect(self.flip_clicked)
+
+        # Background
+        self._mw.constant_background_spinBox.editingFinished.connect(self.constant_background_changed)
 
         # Other stuff
         self._mw.energy_selector_comboBox.currentIndexChanged.connect(self.energy_unit_changed)
@@ -193,6 +197,7 @@ class CCDGui(GUIBase):
             TODO: Double check if the data flipped/rotated properly.
         """
         data = self._ccd_logic.buf_spectrum
+        data = self.correct_background(data, self._constant_background)
 
         if self._is_x_flipped:
             if data.shape[0] == 1:
@@ -313,6 +318,17 @@ class CCDGui(GUIBase):
         # elif index == 2:
         #     pass
 
+    def constant_background_changed(self):
+        self._constant_background = self._mw.constant_background_spinBox.value()
+
+    def correct_background(self, data, background):
+        """
+        Corrects spectra for background. TODO: add correction for background spectra
+        :param data: Numpy array of the input data.
+        :param background: Constant background value.
+        :return: Numpy array of corrected data.
+        """
+        return data - background
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
