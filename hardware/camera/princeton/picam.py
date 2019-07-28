@@ -295,6 +295,99 @@ class Picam(Base, CameraInterface):
 
         self.lib.Picam_DestroyParameters(parameter_array)
 
+    def get_available_parameters(self):
+        """Get a list of lists over the parameters that are available
+        for the current camera and their limits.
+        """
+        parameter_array = ptr(piint())
+        parameter_count = piint()
+        output_list = []
+        self.lib.Picam_GetParameters(self.cam, ptr(parameter_array), ptr(parameter_count))
+
+        for i in range(parameter_count.value):
+
+            # read / write access
+            access = piint()
+            self.lib.Picam_GetParameterValueAccess(self.cam, parameter_array[i], ptr(access))
+            readable = PicamValueAccessLookup[access.value]
+
+            # constraints
+            contype = piint()
+            self.lib.Picam_GetParameterConstraintType(self.cam, parameter_array[i], ptr(contype))
+
+            if PicamConstraintTypeLookup[contype.value] == "None":
+                constraint = "ALL"
+
+            elif PicamConstraintTypeLookup[contype.value] == "Range":
+
+                c = ptr(PicamRangeConstraint())
+                self.lib.Picam_GetParameterRangeConstraint(self.cam, parameter_array[i],
+                                                           PicamConstraintCategory['Capable'], ptr(c))
+
+                constraint = "from %f to %f in steps of %f" % (c[0].minimum, c[0].maximum, c[0].increment)
+
+                self.lib.Picam_DestroyRangeConstraints(c)
+
+            elif PicamConstraintTypeLookup[contype.value] == "Collection":
+
+                c = ptr(PicamCollectionConstraint())
+                self.lib.Picam_GetParameterCollectionConstraint(self.cam, parameter_array[i],
+                                                                PicamConstraintCategory['Capable'], ptr(c))
+
+                constraint = ""
+                for j in range(c[0].values_count):
+                    if constraint != "":
+                        constraint += ", "
+                    constraint += str(c[0].values_array[j])
+
+                self.lib.Picam_DestroyCollectionConstraints(c)
+
+            elif PicamConstraintTypeLookup[contype.value] == "Rois":
+                constraint = "N.A."
+            elif PicamConstraintTypeLookup[contype.value] == "Pulse":
+                constraint = "N.A."
+            elif PicamConstraintTypeLookup[contype.value] == "Modulations":
+                constraint = "N.A."
+
+            output_list.append([PicamParameterLookup[parameter_array[i]], readable, constraint])
+
+        self.lib.Picam_DestroyParameters(parameter_array)
+        return output_list
+
+    def get_availiable_values(self, param):
+        """
+        Return a dictionary or a list of availiable for ccd parameters in case
+         of enumerated or float parameter, respectively.
+        :param string param: Requested parameter
+        :return:
+        """
+        full_list = self.get_available_parameters()
+        param_list = next(x for x in full_list if param in x)
+        # if PicamParameterType[param][0] == 'Enumeration':  # enumeration
+        # if param == 'AdcQuality':
+        #     return [PicamAdcQualityLookup[x] for x in int_values]
+        # elif param == 'AdcAnalogGain':  # enumeration
+        #     return [PicamAdcAnalogGainLookup[x] for x in int_values]
+        # elif param == 'ShutterTimingMode':  # enumeration
+        #     return [PicamShutterTimingModeLookup[x] for x in int_values]
+        # elif param == 'AdcSpeed':  # floating point
+        #     return float_values
+        # elif param == 'VerticalShiftRate':  # floating point
+        #     return float_values
+        # else:
+        #     print('Well, u fucked')
+        if param in PicamEnumeratedParameterDictionary:
+            di = PicamEnumeratedParameterDictionary[param]
+            int_values = [int(float(x)) for x in param_list[2].split(',')]
+            vals = [list(di.keys())[list(di.values()).index(x)] for x in int_values]
+            # return [PicamEnumeratedParameterDictionary[param][x] for x in param_list]
+            dic = dict(zip(vals, int_values))
+            return dic
+        else:
+            float_values = [float(x) for x in param_list[2].split(',')]
+            return float_values
+
+
     # get / set parameters
     # name is a string specifying the parameter
     def get_parameter(self, name):
@@ -1326,6 +1419,183 @@ PicamParameter = {
 }
 PicamParameterLookup = dict(zip(PicamParameter.values(), PicamParameter.keys()))
 
+PicamParameterType = {
+    # Shutter Timing
+    "ExposureTime": ("FloatingPoint", "Range"),
+    "ShutterTimingMode": ("Enumeration", "Collection"),
+    "ShutterOpeningDelay": ("FloatingPoint", "Range"),
+    "ShutterClosingDelay": ("FloatingPoint", "Range"),
+    "ShutterDelayResolution": ("FloatingPoint", "Collection"),
+    # Gating
+    "GatingMode": ("Enumeration", "Collection"),
+    "RepetitiveGate": ("Pulse", "Pulse"),
+    "SequentialStartingGate": ("Pulse", "Pulse"),
+    "SequentialEndingGate": ("Pulse", "Pulse"),
+    "SequentialGateStepCount": ("LargeInteger", "Range"),
+    "SequentialGateStepIterations": ("LargeInteger", "Range"),
+    "DifStartingGate": ("Pulse", "Pulse"),
+    "DifEndingGate": ("Pulse", "Pulse"),
+    # Intensifier
+    "EnableIntensifier": ("Boolean", "Collection"),
+    "IntensifierStatus": ("Enumeration", "None"),
+    "IntensifierGain": ("Integer", "Range"),
+    "EMIccdGainControlMode": ("Enumeration", "Collection"),
+    "EMIccdGain": ("Integer", "Range"),
+    "PhosphorDecayDelay": ("FloatingPoint", "Range"),
+    "PhosphorDecayDelayResolution": ("FloatingPoint", "Collection"),
+    "BracketGating": ("Boolean", "Collection"),
+    "IntensifierOptions": ("Enumeration", "None"),
+    "EnableModulation": ("Boolean", "Collection"),
+    "ModulationDuration": ("FloatingPoint", "Range"),
+    "ModulationFrequency": ("FloatingPoint", "Range"),
+    "RepetitiveModulationPhase": ("FloatingPoint", "Range"),
+    "SequentialStartingModulationPhase": ("FloatingPoint", "Range"),
+    "SequentialEndingModulationPhase": ("FloatingPoint", "Range"),
+    "CustomModulationSequence": ("Modulations", "Modulations"),
+    "PhotocathodeSensitivity": ("Enumeration", "None"),
+    "GatingSpeed": ("Enumeration", "None"),
+    "PhosphorType": ("Enumeration", "None"),
+    "IntensifierDiameter": ("FloatingPoint", "None"),
+    # Analog to Digital Conversion
+    "AdcSpeed": ("FloatingPoint", "Collection"),
+    "AdcBitDepth": ("Integer", "Collection"),
+    "AdcAnalogGain": ("Enumeration", "Collection"),
+    "AdcQuality": ("Enumeration", "Collection"),
+    "AdcEMGain": ("Integer", "Range"),
+    "CorrectPixelBias": ("Boolean", "Collection"),
+    # Hardware I/O
+    "TriggerSource": ("Enumeration", "Collection"),
+    "TriggerResponse": ("Enumeration", "Collection"),
+    "TriggerDetermination": ("Enumeration", "Collection"),
+    "TriggerFrequency": ("FloatingPoint", "Range"),
+    "TriggerTermination": ("Enumeration", "Collection"),
+    "TriggerCoupling": ("Enumeration", "Collection"),
+    "TriggerThreshold": ("FloatingPoint", "Range"),
+    "TriggerDelay": ("FloatingPoint", "Range"),
+    "OutputSignal": ("Enumeration", "Collection"),
+    "InvertOutputSignal": ("Boolean", "Collection"),
+    "OutputSignal2": ("Enumeration", "Collection"),
+    "InvertOutputSignal2": ("Boolean", "Collection"),
+    "EnableAuxOutput": ("Boolean", "Collection"),
+    "AuxOutput": ("Pulse", "Pulse"),
+    "EnableSyncMaster": ("Boolean", "Collection"),
+    "SyncMaster2Delay": ("FloatingPoint", "Range"),
+    "EnableModulationOutputSignal": ("Boolean", "Collection"),
+    "ModulationOutputSignalFrequency": ("FloatingPoint", "Range"),
+    "ModulationOutputSignalAmplitude": ("FloatingPoint", "Range"),
+    "AnticipateTrigger": ("Boolean", "Collection"),
+    "DelayFromPreTrigger": ("FloatingPoint", "Range"),
+    # Readout Control
+    "ReadoutControlMode": ("Enumeration", "Collection"),
+    "ReadoutTimeCalculation": ("FloatingPoint", "None"),
+    "ReadoutPortCount": ("Integer", "Collection"),
+    "ReadoutOrientation": ("Enumeration", "None"),
+    "KineticsWindowHeight": ("Integer", "Range"),
+    "SeNsRWindowHeight": ("Integer", "Range"),
+    "VerticalShiftRate": ("FloatingPoint", "Collection"),
+    "Accumulations": ("LargeInteger", "Range"),
+    "EnableNondestructiveReadout": ("Boolean", "Collection"),
+    "NondestructiveReadoutPeriod": ("FloatingPoint", "Range"),
+    # Data Acquisition
+    "Rois": ("Rois", "Rois"),
+    "NormalizeOrientation": ("Boolean", "Collection"),
+    "DisableDataFormatting": ("Boolean", "Collection"),
+    "ReadoutCount": ("LargeInteger", "Range"),
+    "ExactReadoutCountMaximum": ("LargeInteger", "None"),
+    "PhotonDetectionMode": ("Enumeration", "Collection"),
+    "PhotonDetectionThreshold": ("FloatingPoint", "Range"),
+    "PixelFormat": ("Enumeration", "Collection"),
+    "FrameSize": ("Integer", "None"),
+    "FrameStride": ("Integer", "None"),
+    "FramesPerReadout": ("Integer", "None"),
+    "ReadoutStride": ("Integer", "None"),
+    "PixelBitDepth": ("Integer", "None"),
+    "ReadoutRateCalculation": ("FloatingPoint", "None"),
+    "OnlineReadoutRateCalculation": ("FloatingPoint", "None"),
+    "FrameRateCalculation": ("FloatingPoint", "None"),
+    "Orientation": ("Enumeration", "None"),
+    "TimeStamps": ("Enumeration", "Collection"),
+    "TimeStampResolution": ("LargeInteger", "Collection"),
+    "TimeStampBitDepth": ("Integer", "Collection"),
+    "TrackFrames": ("Boolean", "Collection"),
+    "FrameTrackingBitDepth": ("Integer", "Collection"),
+    "GateTracking": ("Enumeration", "Collection"),
+    "GateTrackingBitDepth": ("Integer", "Collection"),
+    "ModulationTracking": ("Enumeration", "Collection"),
+    "ModulationTrackingBitDepth": ("Integer", "Collection"),
+    # Sensor Information
+    "SensorType": ("Enumeration", "None"),
+    "CcdCharacteristics": ("Enumeration", "None"),
+    "SensorActiveWidth": ("Integer", "None"),
+    "SensorActiveHeight": ("Integer", "None"),
+    "SensorActiveExtendedHeight": ("Integer", "None"),
+    "SensorActiveLeftMargin": ("Integer", "None"),
+    "SensorActiveTopMargin": ("Integer", "None"),
+    "SensorActiveRightMargin": ("Integer", "None"),
+    "SensorActiveBottomMargin": ("Integer", "None"),
+    "SensorMaskedHeight": ("Integer", "None"),
+    "SensorMaskedTopMargin": ("Integer", "None"),
+    "SensorMaskedBottomMargin": ("Integer", "None"),
+    "SensorSecondaryMaskedHeight": ("Integer", "None"),
+    "SensorSecondaryActiveHeight": ("Integer", "None"),
+    "PixelWidth": ("FloatingPoint", "None"),
+    "PixelHeight": ("FloatingPoint", "None"),
+    "PixelGapWidth": ("FloatingPoint", "None"),
+    "PixelGapHeight": ("FloatingPoint", "None"),
+    # Sensor Layout
+    "ActiveWidth": ("Integer", "Range"),
+    "ActiveHeight": ("Integer", "Range"),
+    "ActiveExtendedHeight": ("Integer", "Range"),
+    "ActiveLeftMargin": ("Integer", "Range"),
+    "ActiveTopMargin": ("Integer", "Range"),
+    "ActiveRightMargin": ("Integer", "Range"),
+    "ActiveBottomMargin": ("Integer", "Range"),
+    "MaskedHeight": ("Integer", "Range"),
+    "MaskedTopMargin": ("Integer", "Range"),
+    "MaskedBottomMargin": ("Integer", "Range"),
+    "SecondaryMaskedHeight": ("Integer", "Range"),
+    "SecondaryActiveHeight": ("Integer", "Range"),
+    # Sensor Cleaning
+    "CleanSectionFinalHeight": ("Integer", "Range"),
+    "CleanSectionFinalHeightCount": ("Integer", "Range"),
+    "CleanSerialRegister": ("Boolean", "Collection"),
+    "CleanCycleCount": ("Integer", "Range"),
+    "CleanCycleHeight": ("Integer", "Range"),
+    "CleanBeforeExposure": ("Boolean", "Collection"),
+    "CleanUntilTrigger": ("Boolean", "Collection"),
+    "StopCleaningOnPreTrigger": ("Boolean", "Collection"),
+    # Sensor Temperature
+    "SensorTemperatureSetPoint": ("FloatingPoint", "Range"),
+    "SensorTemperatureReading": ("FloatingPoint", "None"),
+    "SensorTemperatureStatus": ("Enumeration", "None"),
+    "DisableCoolingFan": ("Boolean", "Collection"),
+    "CoolingFanStatus": ("Enumeration", "None"),
+    "EnableSensorWindowHeater": ("Boolean", "Collection"),
+    "VacuumStatus": ("Enumeration", "None"),
+    # Spectrograph
+    "CenterWavelengthSetPoint": ("FloatingPoint", "Range"),
+    "CenterWavelengthReading": ("FloatingPoint", "None"),
+    "CenterWavelengthStatus": ("Enumeration", "None"),
+    "GratingType": ("Enumeration", "None"),
+    "GratingCoating": ("Enumeration", "None"),
+    "GratingGrooveDensity": ("FloatingPoint", "None"),
+    "GratingBlazingWavelength": ("FloatingPoint", "None"),
+    "FocalLength": ("FloatingPoint", "None"),
+    "InclusionAngle": ("FloatingPoint", "None"),
+    "SensorAngle": ("FloatingPoint", "None"),
+    # Accessory - Lamp
+    "LightSource": ("Enumeration", "Collection"),
+    "LightSourceStatus": ("Enumeration", "None"),
+    "Age": ("FloatingPoint", "None"),
+    "LifeExpectancy": ("FloatingPoint", "None"),
+    # Accessory - Laser
+    "LaserOutputMode": ("Enumeration", "Collection"),
+    "LaserPower": ("FloatingPoint", "Range"),
+    "LaserStatus": ("Enumeration", "None"),
+    "InputTriggerStatus": ("Enumeration", "None")
+}
+# PicamParameterTypeLookup = dict(zip(PicamParameterType.values(), PicamParameterType.keys()))
+
 PicamActiveShutter = {
     "None": 1,
     "Internal": 2,
@@ -1697,6 +1967,54 @@ PicamAcquisitionErrorsMask = {
 }
 PicamAcquisitionErrorsMaskLookup = dict(zip(PicamAcquisitionErrorsMask.values(), PicamAcquisitionErrorsMask.keys()))
 
+# List of ditionaries
+PicamEnumeratedParameterDictionary = {
+    "ActiveShutter": PicamActiveShutter,
+    "AdcAnalogGain": PicamAdcAnalogGain,
+    "AdcQuality": PicamAdcQuality,
+    "CcdCharacteristicsMask": PicamCcdCharacteristicsMask,
+    "CenterWavelengthStatus": PicamCenterWavelengthStatus,
+    "CoolingFanStatus": PicamCoolingFanStatus,
+    "EMIccdGainControlMode": PicamEMIccdGainControlMode,
+    "GateTrackingMask": PicamGateTrackingMask,
+    "GatingMode": PicamGatingMode,
+    "GatingSpeed": PicamGatingSpeed,
+    "GratingCoating": PicamGratingCoating,
+    "GratingType": PicamGratingType,
+    "IntensifierOptionsMask": PicamIntensifierOptionsMask,
+    "IntensifierStatus": PicamIntensifierStatus,
+    "LaserOutputMode": PicamLaserOutputMode,
+    "LaserStatus": PicamLaserStatus,
+    "LightSource": PicamLightSource,
+    "LightSourceStatus": PicamLightSourceStatus,
+    "ModulationTrackingMask": PicamModulationTrackingMask,
+    "OrientationMask": PicamOrientationMask,
+    "OutputSignal": PicamOutputSignal,
+    "PhosphorType": PicamPhosphorType,
+    "PhotocathodeSensitivity": PicamPhotocathodeSensitivity,
+    "PhotonDetectionMode": PicamPhotonDetectionMode,
+    "PixelFormat": PicamPixelFormat,
+    "ReadoutControlMode": PicamReadoutControlMode,
+    "SensorTemperatureStatus": PicamSensorTemperatureStatus,
+    "SensorType": PicamSensorType,
+    "ShutterStatus": PicamShutterStatus,
+    "ShutterTimingMode": PicamShutterTimingMode,
+    "ShutterType": PicamShutterType,
+    "TimeStampsMask": PicamTimeStampsMask,
+    "TriggerCoupling": PicamTriggerCoupling,
+    "TriggerDetermination": PicamTriggerDetermination,
+    "TriggerResponse": PicamTriggerResponse,
+    "TriggerSource": PicamTriggerSource,
+    "TriggerStatus": PicamTriggerStatus,
+    "TriggerTermination": PicamTriggerTermination,
+    "VacuumStatus": PicamVacuumStatus,
+    "ValueAccess": PicamValueAccess,
+    "ConstraintScope": PicamConstraintScope,
+    "ConstraintSeverity": PicamConstraintSeverity,
+    "ConstraintCategory": PicamConstraintCategory,
+    "ConstraintRulesMask": PicamRoisConstraintRulesMask,
+    "AcquisitionErrorsMask": PicamAcquisitionErrorsMask
+}
 
 # +++++++ structures +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class PicamCameraID(ctypes.Structure):

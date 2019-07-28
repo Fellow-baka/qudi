@@ -169,4 +169,3 @@ class CCDLogic(GenericLogic):
             return [1e7 / x for x in data_array]
         elif out_unit == "Frequency (THz)":
             return [299_792.458 / x for x in data_array]
-
