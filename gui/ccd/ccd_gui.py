@@ -161,6 +161,14 @@ class CCDGui(GUIBase):
         # Background
         self._mw.constant_background_spinBox.editingFinished.connect(self.constant_background_changed)
 
+        # Adc and shutter stuff
+        self.fill_interface_values()
+        self._mw.adc_quality_comboBox.currentIndexChanged.connect(self.adc_quality_changed)
+        self._mw.adc_analog_gain_comboBox.currentIndexChanged.connect(self.adc_analog_gain_changed)
+        self._mw.shutter_timing_mode_comboBox.currentIndexChanged.connect(self.shutter_timing_mode_changed)
+        self._mw.adc_speed_comboBox.currentIndexChanged.connect(self.adc_speed_changed)
+        self._mw.vertical_shift_rate_comboBox.currentIndexChanged.connect(self.vertical_shift_rate_changed)
+
         # Other stuff
         self._mw.energy_selector_comboBox.currentIndexChanged.connect(self.energy_unit_changed)
 
@@ -309,14 +317,6 @@ class CCDGui(GUIBase):
         self.log.info(f"Selected x axis units: {box_text}")
         self._x_axis_mode = box_text
         self.update_data()
-        # if index == 0:
-        #     pass
-        #     # self.log.info(f"Selected x axis units: {box_text}")
-        # elif index == 1:
-        #     pass
-        #     # self.log.info(f"{self._mw.energy_selector_comboBox.currentText()}")
-        # elif index == 2:
-        #     pass
 
     def constant_background_changed(self):
         self._constant_background = self._mw.constant_background_spinBox.value()
@@ -329,6 +329,68 @@ class CCDGui(GUIBase):
         :return: Numpy array of corrected data.
         """
         return data - background
+
+    # TODO: Refactor this whole part. It seems it is possible to make this more elegant.
+
+    def adc_quality_changed(self):
+        di = self._ccd_logic.get_availiable_values('AdcQuality')
+        val = di[self._mw.adc_quality_comboBox.currentText()]
+        self._ccd_logic.set_parameter_propagator('AdcQuality', val)
+
+    def adc_analog_gain_changed(self):
+        di = self._ccd_logic.get_availiable_values('AdcAnalogGain')
+        val = di[self._mw.adc_analog_gain_comboBox.currentText()]
+        self._ccd_logic.set_parameter_propagator('AdcAnalogGain', val)
+
+    def shutter_timing_mode_changed(self):
+        di = self._ccd_logic.get_availiable_values('ShutterTimingMode')
+        val = di[self._mw.shutter_timing_mode_comboBox.currentText()]
+        self._ccd_logic.set_parameter_propagator('ShutterTimingMode', val)
+
+    def adc_speed_changed(self):
+        val = float(self._mw.adc_speed_comboBox.currentText())
+        self._ccd_logic.set_parameter_propagator('AdcSpeed', val)
+
+    def vertical_shift_rate_changed(self):
+        val = float(self._mw.vertical_shift_rate_comboBox.currentText())
+        self._ccd_logic.set_parameter_propagator('VerticalShiftRate', val)
+
+    def fill_interface_values(self):
+        """
+        Fills in available parameters for the selected camera and selects current/default values.
+        """
+        # for enumerated collections
+        self._mw.adc_quality_comboBox.addItems(
+            list(self._ccd_logic.get_availiable_values('AdcQuality').keys()))
+        par = self._ccd_logic.get_parameter_propagator('AdcQuality')
+        di = self._ccd_logic.get_availiable_values('AdcQuality')
+        act = dict(map(reversed, di.items()))[par]
+        self._mw.adc_quality_comboBox.setCurrentText(act)
+
+        self._mw.adc_analog_gain_comboBox.addItems(
+            list(self._ccd_logic.get_availiable_values('AdcAnalogGain').keys()))
+        par = self._ccd_logic.get_parameter_propagator('AdcAnalogGain')
+        di = self._ccd_logic.get_availiable_values('AdcAnalogGain')
+        act = dict(map(reversed, di.items()))[par]
+        self._mw.adc_analog_gain_comboBox.setCurrentText(act)
+
+        self._mw.shutter_timing_mode_comboBox.addItems(
+            list(self._ccd_logic.get_availiable_values('ShutterTimingMode').keys()))
+        par = self._ccd_logic.get_parameter_propagator('ShutterTimingMode')
+        di = self._ccd_logic.get_availiable_values('ShutterTimingMode')
+        act = dict(map(reversed, di.items()))[par]
+        self._mw.shutter_timing_mode_comboBox.setCurrentText(act)
+
+        # for float things
+        self._mw.adc_speed_comboBox.addItems(
+            list(map(str, self._ccd_logic.get_availiable_values('AdcSpeed'))))
+        par = self._ccd_logic.get_parameter_propagator('AdcSpeed')
+        self._mw.adc_speed_comboBox.setCurrentText(str(par))
+
+        self._mw.vertical_shift_rate_comboBox.addItems(
+            list(map(str, self._ccd_logic.get_availiable_values('VerticalShiftRate'))))
+        par = self._ccd_logic.get_parameter_propagator('VerticalShiftRate')
+        self._mw.vertical_shift_rate_comboBox.setCurrentText(str(par))
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

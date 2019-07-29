@@ -447,7 +447,7 @@
       <string>AdcAnalogGain:</string>
      </property>
     </widget>
-    <widget class="QComboBox" name="adc_quality_comboBox_2">
+    <widget class="QComboBox" name="adc_analog_gain_comboBox">
      <property name="geometry">
       <rect>
        <x>400</x>
@@ -470,7 +470,7 @@
       <string>ShutterTimingMode:</string>
      </property>
     </widget>
-    <widget class="QComboBox" name="adc_quality_comboBox_3">
+    <widget class="QComboBox" name="shutter_timing_mode_comboBox">
      <property name="geometry">
       <rect>
        <x>400</x>
@@ -493,7 +493,7 @@
       <string>AdcSpeed (MHz):</string>
      </property>
     </widget>
-    <widget class="QComboBox" name="adc_quality_comboBox_4">
+    <widget class="QComboBox" name="adc_speed_comboBox">
      <property name="geometry">
       <rect>
        <x>400</x>
@@ -516,7 +516,7 @@
       <string>VerticalShiftRate (us):</string>
      </property>
     </widget>
-    <widget class="QComboBox" name="adc_quality_comboBox_5">
+    <widget class="QComboBox" name="vertical_shift_rate_comboBox">
      <property name="geometry">
       <rect>
        <x>400</x>

@@ -116,6 +116,23 @@ class CCDLogic(GenericLogic):
         else:
             pass
 
+    def set_parameter_propagator(self, par, value):
+        """
+        Propagate chane of parameter directly to camera
+        :param par:
+        :param value:
+        :return:
+        """
+        self._hardware.set_parameter(par, value)
+        self._hardware.send_configuration()
+
+    def get_parameter_propagator(self, par):
+        """
+        Propagate chane of parameter directly to camera
+        :return:
+        """
+        return self._hardware.get_parameter(par)
+
     def convert_from_pixel_to_nm(self, w_mid_nm, offset_nm=0):
         """
         Creates list of wavelengts to plot spectra/image in gui.
@@ -169,3 +186,6 @@ class CCDLogic(GenericLogic):
             return [1e7 / x for x in data_array]
         elif out_unit == "Frequency (THz)":
             return [299_792.458 / x for x in data_array]
+
+    def get_availiable_values(self, param):
+        return self._hardware.get_availiable_values(param)
