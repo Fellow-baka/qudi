@@ -21,6 +21,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import numpy as np
 import time
+from collections import OrderedDict
 
 from core.module import Connector
 from logic.generic_logic import GenericLogic
@@ -35,6 +36,7 @@ class CCDLogic(GenericLogic):
 
     simpledata = Connector(interface='SimpleDataInterface')
     monochromator = Connector(interface='CCDLogic')
+    savelogic = Connector(interface='SaveLogic')
 
     sigRepeat = QtCore.Signal()
     sigAquired = QtCore.Signal()
@@ -43,10 +45,10 @@ class CCDLogic(GenericLogic):
     sigAcquisitionFinished = QtCore.Signal()
     sigVideoFinished = QtCore.Signal()
 
-    # _data = None
+    # different variables
     _focus_exposure = 1.
     _acquisition_exposure = 10.
-    _gain = 1.
+    _constant_background = 0
     _mode = "1D"  # dummy value to distinguish between spectra/image
     _roi = []
 
@@ -55,9 +57,12 @@ class CCDLogic(GenericLogic):
         """
         self._hardware = self.simpledata()
         self._mono = self.monochromator()
+        self._save_logic = self.savelogic()
+
         self.resolution_x = self._hardware.get_size()[0]
         self.resolution_y = self._hardware.get_size()[1]
         self._roi = [0, self.resolution_x, 1, 0, self.resolution_y, 1]
+
         self.stopRequest = False
         self.buf_spectrum = np.zeros((1, self.resolution_x))
         self.sigRepeat.connect(self.focus_loop, QtCore.Qt.QueuedConnection)
@@ -72,8 +77,7 @@ class CCDLogic(GenericLogic):
         # self.module_state.lock()
         self._hardware._exposure = self._acquisition_exposure
         self._hardware.start_single_acquisition()
-        self.buf_spectrum = np.rot90(self._hardware.get_acquired_data(), axes=(1, 0))
-        # self.buf_spectrum = self._hardware.get_acquired_data()
+        self.buf_spectrum = self._hardware.get_acquired_data()
         self.sigUpdateDisplay.emit()
         self.sigAcquisitionFinished.emit()
 
@@ -189,3 +193,53 @@ class CCDLogic(GenericLogic):
 
     def get_availiable_values(self, param):
         return self._hardware.get_availiable_values(param)
+
+    def save_data(self, name_tag='', custom_header=None):
+        """
+
+        :param string name_tag: postfix name tag for saved filename.
+        :param OrderedDict custom_header:
+        :return:
+            This ordered dictionary is added to the default data file header. It allows arbitrary
+            additional experimental information to be included in the saved data file header.
+        """
+        filepath = self._save_logic.get_path_for_module(module_name='spectra')
+        filelabel = 'spectrum'
+        buffered_data = self.buf_spectrum
+
+        # Add name_tag as postfix to filename
+        if name_tag != '':
+            filelabel = filelabel + '_' + name_tag
+
+        # TODO: introduce some real and additional parameters
+        parameters = OrderedDict()
+        parameters['Exposure (s)'] = self._acquisition_exposure
+        parameters['Constant background (counts)'] = self._constant_background
+
+        # add any custom header params
+        if custom_header is not None:
+            for key in custom_header:
+                parameters[key] = custom_header[key]
+
+        data = OrderedDict()
+
+        if buffered_data.shape[0] == 1:
+            data['pixel'] = np.arange(0, 1340, 1)
+            data['counts'] = buffered_data[0, :]
+        else:
+            data['counts2d'] = np.rot90(buffered_data)
+
+        self._save_logic.save_data(data,
+                                   filepath=filepath,
+                                   parameters=parameters,
+                                   filelabel=filelabel)
+        self.log.debug('Spectrum saved to:\n{0}'.format(filepath))
+
+    def correct_background(self, data, background):
+        """
+        Corrects spectra for background. TODO: add correction for background spectra
+        :param data: Numpy array of the input data.
+        :param background: Constant background value.
+        :return: Numpy array of corrected data.
+        """
+        return data - background

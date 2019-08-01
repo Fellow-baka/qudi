@@ -57,7 +57,7 @@ class CCDGui(GUIBase):
     _modtype = 'gui'
 
     # declare connectors
-    ccdd = Connector(interface='CCDLogic')
+    ccdlogic = Connector(interface='CCDLogic')
 
     sigFocusStart = QtCore.Signal()
     sigFocusStop = QtCore.Signal()
@@ -67,7 +67,7 @@ class CCDGui(GUIBase):
     _image = []
     _is_x_flipped = False
     _x_axis_mode = "Pixel"
-    _constant_background = 0
+    # _constant_background = 0
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -80,7 +80,7 @@ class CCDGui(GUIBase):
     def on_activate(self):
         """ Definition and initialisation of the GUI.
         """
-        self._ccd_logic = self.ccdd()
+        self._ccd_logic = self.ccdlogic()
 
         #####################
         # Configuring the dock widgets
@@ -204,8 +204,8 @@ class CCDGui(GUIBase):
             Asks logic module to convert x-axis to target units, changing axis labels.
             TODO: Double check if the data flipped/rotated properly.
         """
-        data = self._ccd_logic.buf_spectrum
-        data = self.correct_background(data, self._constant_background)
+        raw_data = self._ccd_logic.buf_spectrum
+        data = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
 
         if self._is_x_flipped:
             if data.shape[0] == 1:
@@ -227,7 +227,7 @@ class CCDGui(GUIBase):
 
         if data.shape[0] == 1:                  # Spectrum mode
             self._iw.clear()
-            data = np.fliplr(data)
+            # data = np.fliplr(data)
             data = data[0]
             self._curve1.setData(x=x_axis, y=data)
             if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
@@ -239,16 +239,23 @@ class CCDGui(GUIBase):
             self._curve1.clear()
             self._iw.clear()
             self._iw.setImage(data)
+            self._iw.imageItem.resetTransform()
+
             if self._x_axis_mode != 'Pixel':
-                self._iw.imageItem.resetTransform()
+                # self._iw.imageItem.resetTransform()
                 self._iw.imageItem.translate(x_axis[0], 0)
                 self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/data.shape[0], 1)
                 self._iw.view.getViewBox().invertY(False)
-                self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=data.shape[0] / (x_axis[-1] - x_axis[0]))
+                aspect_ratio = data.shape[0] / (x_axis[-1] - x_axis[0])
+                self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=aspect_ratio)
+            elif self._x_axis_mode == 'Pixel':
+                self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=1)
+
             if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
                 self._iw.view.getViewBox().invertX(True)
                 self._iw.view.getViewBox().invertY(True)
             else:
+                # self._iw.imageItem.resetTransform()
                 self._iw.view.getViewBox().invertX(False)
                 self._iw.view.getViewBox().invertY(False)
             self._iw.autoRange()
@@ -278,7 +285,7 @@ class CCDGui(GUIBase):
     def save_clicked(self):
         """ Handling the save button to save the data into a file.
         """
-        return
+        self._ccd_logic.save_data()
 
     def focus_time_changed(self):
         self._ccd_logic.set_parameter("focus_exposure", self._mw.focus_doubleSpinBox.value())
@@ -319,16 +326,7 @@ class CCDGui(GUIBase):
         self.update_data()
 
     def constant_background_changed(self):
-        self._constant_background = self._mw.constant_background_spinBox.value()
-
-    def correct_background(self, data, background):
-        """
-        Corrects spectra for background. TODO: add correction for background spectra
-        :param data: Numpy array of the input data.
-        :param background: Constant background value.
-        :return: Numpy array of corrected data.
-        """
-        return data - background
+        self._ccd_logic._constant_background = self._mw.constant_background_spinBox.value()
 
     # TODO: Refactor this whole part. It seems it is possible to make this more elegant.
 

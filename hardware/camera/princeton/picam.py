@@ -40,14 +40,19 @@ class Picam(Base, CameraInterface):
         pass
 
     def get_acquired_data(self):
-        """Returns only a first ROI in first frame.
-            Reshape of returned array needed (at least for PyLoN BR 100) in case of image
-            due to unknown reasons. (Different firmwares?)"""
+        """
+            Returns only a first ROI in first frame.
+            Reshape of array returned from read_frame is needed (at least for PyLoN BR 100) in case of image
+            due to unknown reasons. (Different firmwares?)
+        """
         data = self.read_frames(1, 100000)[0][0]  # First ROI of first frame
         if np.shape(data)[1] == 1 or np.shape(data)[0] == 1:  # Return as is if the data is one dimensional
-            return data
+            return np.rot90(data)
         else:
-            return np.reshape(data, self.get_size()[::-1])
+            reshaped = np.reshape(data, self.get_size()[::-1])
+            rotated = np.rot90(reshaped)
+            flipped = np.flipud(rotated)
+            return flipped
 
     def set_exposure(self, exposure):
         self.set_parameter("ExposureTime", exposure)
@@ -363,30 +368,16 @@ class Picam(Base, CameraInterface):
         """
         full_list = self.get_available_parameters()
         param_list = next(x for x in full_list if param in x)
-        # if PicamParameterType[param][0] == 'Enumeration':  # enumeration
-        # if param == 'AdcQuality':
-        #     return [PicamAdcQualityLookup[x] for x in int_values]
-        # elif param == 'AdcAnalogGain':  # enumeration
-        #     return [PicamAdcAnalogGainLookup[x] for x in int_values]
-        # elif param == 'ShutterTimingMode':  # enumeration
-        #     return [PicamShutterTimingModeLookup[x] for x in int_values]
-        # elif param == 'AdcSpeed':  # floating point
-        #     return float_values
-        # elif param == 'VerticalShiftRate':  # floating point
-        #     return float_values
-        # else:
-        #     print('Well, u fucked')
+
         if param in PicamEnumeratedParameterDictionary:
             di = PicamEnumeratedParameterDictionary[param]
             int_values = [int(float(x)) for x in param_list[2].split(',')]
             vals = [list(di.keys())[list(di.values()).index(x)] for x in int_values]
-            # return [PicamEnumeratedParameterDictionary[param][x] for x in param_list]
             dic = dict(zip(vals, int_values))
             return dic
         else:
             float_values = [float(x) for x in param_list[2].split(',')]
             return float_values
-
 
     # get / set parameters
     # name is a string specifying the parameter
