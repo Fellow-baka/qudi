@@ -40,7 +40,8 @@ from core.module import Base, ConfigOption
 from interface.motor_interface import MotorInterface
 
 # TODO: how to import this before or after? Right now the path is hardcoded
-libdir = 'C:\\Users\\Eight\\PycharmProjects\\standa\\ximc-2.10.5\\ximc\\win64'
+# libdir = 'C:\\Users\\Eight\\PycharmProjects\\standa\\ximc-2.10.5\\ximc\\win64'
+libdir = 'C:\\Users\\pwalbers\\Downloads\\libximc-2.10.5-all.tar\\libximc-2.10.5-all\\ximc-2.10.5\\ximc\\win64'
 os.environ["Path"] = libdir + ";" + os.environ["Path"]  # add dll
 
 from .pyximc import *
@@ -59,9 +60,9 @@ class MotorStanda(Base, MotorInterface):
     _modclass = 'standa_rotator'
     _modtype = 'hardware'
 
-    _libdir = ConfigOption('ximc_path',
-                           'C:\\Users\\Eight\\PycharmProjects\\standa\\ximc-2.10.5\\ximc\\win64',
-                           missing='error')
+    # _libdir = ConfigOption('ximc_path',
+    #                        'C:\\Users\\Eight\\PycharmProjects\\standa\\ximc-2.10.5\\ximc\\win64',
+    #                        missing='error')
 
     _axis_label = ConfigOption('axis_label', 'phi', missing='error')
 

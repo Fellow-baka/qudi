@@ -49,7 +49,10 @@ class Picam(Base, CameraInterface):
         if np.shape(data)[1] == 1 or np.shape(data)[0] == 1:  # Return as is if the data is one dimensional
             return np.rot90(data)
         else:
-            reshaped = np.reshape(data, self.get_size()[::-1])
+            roi = self.get_parameter('Rois')
+            height = roi.roi_array.contents.height
+            width = roi.roi_array.contents.width
+            reshaped = np.reshape(data, [height, width])
             rotated = np.rot90(reshaped)
             flipped = np.flipud(rotated)
             return flipped

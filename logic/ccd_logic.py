@@ -51,7 +51,7 @@ class CCDLogic(GenericLogic):
     _mode = StatusVar(default='1D')  # Var defining spectra/image mode
     _ccd_offset_nm = StatusVar(default=0.0)
     _x_flipped = StatusVar(default=False)
-    _roi = []
+    _roi = StatusVar(default=[])
     _raw_data_dict = OrderedDict()
     _proceed_data_dict = OrderedDict()
 
@@ -64,7 +64,7 @@ class CCDLogic(GenericLogic):
 
         self.resolution_x = self._hardware.get_size()[0]
         self.resolution_y = self._hardware.get_size()[1]
-        self._roi = [0, self.resolution_x, 1, 0, self.resolution_y, 1]
+        # self._roi = [0, self.resolution_x, 1, 0, self.resolution_y, 1]
 
         self.stopRequest = False
         self.sigRepeat.connect(self.focus_loop, QtCore.Qt.QueuedConnection)
@@ -84,6 +84,7 @@ class CCDLogic(GenericLogic):
         # self.module_state.lock()
         self._hardware._exposure = self._acquisition_exposure
         self._hardware.start_single_acquisition()
+        self._raw_data_dict['Pixels'] = np.arange(self._roi[0]+1, self._roi[1]+1, 1)
         self._raw_data_dict['Counts'] = self._hardware.get_acquired_data()
         self.sigUpdateDisplay.emit()
         self.sigAcquisitionFinished.emit()
@@ -142,7 +143,7 @@ class CCDLogic(GenericLogic):
         """
         return self._hardware.get_parameter(par)
 
-    def convert_from_pixel_to_nm(self, w_mid_nm, offset_nm=0):
+    def convert_from_pixel_to_nm(self, pixels, w_mid_nm, offset_nm=0):
         """
         Creates list of wavelengts to plot spectra/image in gui.
         Asks CCD for the size of the chip and pixel size.
@@ -151,6 +152,7 @@ class CCDLogic(GenericLogic):
         Output in nm.
         TODO: Make it possible to work with arbitrary number of pixels.
         TODO: Ask hardware details from monochromtor.
+        :param ndarray pixels: Array of pixels.
         :param float w_mid_nm: Wavelength at the middle of ccd in nm. Corresponds to position of the grating.
         :param float offset_nm: Offset in nanometers.
         """
@@ -164,7 +166,7 @@ class CCDLogic(GenericLogic):
         m = 1  # diffraction order
         delta = 0  # deviation of the CCD from the plane, will be used later
         w_mid_m = w_mid_nm * 1e-9  # nm -> m
-        pixels = np.arange(-1340/2, 1340/2, 1)
+        pixels = pixels - self.resolution_x // 2  # Kinda select pixels from the middle of ccd
 
         xi = [np.arctan((n * x * np.cos(delta))/(f + n * x * np.sin(delta))) for n in pixels]
         psi = np.arcsin((m * w_mid_m)/(2 * d * np.cos(inclusion/2)))
@@ -182,7 +184,9 @@ class CCDLogic(GenericLogic):
         :param data_array: array of values in nm needed to be converted to target units.
         :return: Array of the target units
         """
-        if out_unit == "Wavelength (nm)":
+        if out_unit == "Pixels":
+            return self._raw_data_dict['Pixels']
+        elif out_unit == "Wavelength (nm)":
             return data_array
         elif out_unit == "Raman shift (cm-1)":
             laserline_nm = self._mono.laserline
@@ -208,7 +212,6 @@ class CCDLogic(GenericLogic):
             additional experimental information to be included in the saved data file header.
         """
         filepath = self._save_logic.get_path_for_module(module_name='spectroscopy')
-
 
         # TODO: introduce some real and additional parameters
         parameters = OrderedDict()
@@ -276,3 +279,24 @@ class CCDLogic(GenericLogic):
 
     def get_monochromator_parameters(self):
         pass
+
+    def convert_spectra(self, x_axis, y_axis):
+        """
+        Converts raw spectra (Counts vs pixels) to proceed
+        :param x_axis: string of requested units for x-axis
+        :param y_axis: string of requested units for y-axis
+        :return: Ordered dictionary of requested units
+        """
+        self._proceed_data_dict = OrderedDict()
+
+        wavelength_middle = self._mono._current_wavelength_nm
+        pixels = self._raw_data_dict['Pixels']
+        offset = self._ccd_offset_nm
+        nm = self.convert_from_pixel_to_nm(pixels, wavelength_middle, offset)
+        converted_x = self.convert_energy_units(nm, x_axis)
+        self._proceed_data_dict[x_axis] = np.array(converted_x)
+
+        converted_y = self.correct_background(self._raw_data_dict['Counts'], self._constant_background)
+        self._proceed_data_dict[y_axis] = converted_y
+        return self._proceed_data_dict
+

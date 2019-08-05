@@ -63,8 +63,9 @@ class CCDGui(GUIBase):
     sigAcquisitionStop = QtCore.Signal()
 
     _image = []
-    _is_x_flipped = False
-    _x_axis_mode = "Pixels"
+    # _is_x_flipped = False
+    _x_axis_mode = 'Pixels'
+    _y_axis_mode = 'Counts'
     # _constant_background = 0
 
     def __init__(self, config, **kwargs):
@@ -134,6 +135,13 @@ class CCDGui(GUIBase):
         self._mw.acquisition_doubleSpinBox.setValue(self._ccd_logic._acquisition_exposure)
         self._mw.constant_background_spinBox.setValue(self._ccd_logic._constant_background)
         self._mw.ccd_offset_nm_doubleSpinBox.setValue(self._ccd_logic._ccd_offset_nm)
+
+        self._mw.roi_x0_spinBox.setValue(self._ccd_logic._ccd_offset_nm)
+
+        self._mw.roi_x0_spinBox.setValue(self._ccd_logic._roi[0])
+        self._mw.roi_x_max_spinBox.setValue(self._ccd_logic._roi[1] + self._ccd_logic._roi[0])  # convert to coordinates from width
+        self._mw.roi_y0_spinBox.setValue(self._ccd_logic._roi[3])
+        self._mw.roi_y_max_spinBox.setValue(self._ccd_logic._roi[4] + self._ccd_logic._roi[3])
 
         #####################
         # Connecting user interactions
@@ -206,17 +214,20 @@ class CCDGui(GUIBase):
             Changing axis labels accordingly.
             TODO: Double check if the data flipped/rotated properly.
         """
-        raw_data = self._ccd_logic._raw_data_dict['Counts']
-        self._ccd_logic._proceed_data_dict['Counts'] = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
+        # self._ccd_logic._proceed_data_dict['Pixels'] = self._ccd_logic._raw_data_dict['Pixels']
+
+        # raw_data = self._ccd_logic._raw_data_dict['Counts']
+        # self._ccd_logic._proceed_data_dict['Counts'] = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
+        # data = self._ccd_logic._proceed_data_dict['Counts']
+
+        self._ccd_logic._proceed_data_dict = self._ccd_logic.convert_spectra(self._x_axis_mode, 'Counts')
         data = self._ccd_logic._proceed_data_dict['Counts']
 
         if self._ccd_logic._x_flipped:
             self._ccd_logic.flip_data(data)
 
         # Fill
-        self._ccd_logic._raw_data_dict['Pixels'] = x_axis = np.arange(1, 1340+1, 1)  # TODO: put some sane number
-
-        self._ccd_logic._proceed_data_dict['Pixels'] = self._ccd_logic._raw_data_dict['Pixels']
+        # self._ccd_logic._proceed_data_dict['Pixels'] = self._ccd_logic._raw_data_dict['Pixels']
 
         # Convert to target units and change labels
 
@@ -229,7 +240,7 @@ class CCDGui(GUIBase):
                 self._sw.invertX(True)
             else:
                 self._sw.invertX(False)
-            self._sw.plotItem.autoRange()
+            # self._sw.plotItem.autoRange()
         else:                                   # Image mode
             self._curve1.clear()
             self._iw.clear()
@@ -254,6 +265,10 @@ class CCDGui(GUIBase):
                 self._iw.view.getViewBox().invertX(False)
                 self._iw.view.getViewBox().invertY(False)
             self._iw.autoRange()
+
+        # Refresh lables!
+        self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+        self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """
@@ -318,22 +333,8 @@ class CCDGui(GUIBase):
 
     def energy_unit_changed(self, index):
         box_text = self._mw.energy_selector_comboBox.currentText()
-        self.log.info(f"Selected x axis units: {box_text}")
         self._x_axis_mode = box_text
-
-        self._ccd_logic._proceed_data_dict.clear()
-
-        if self._x_axis_mode != "Pixels":
-            wavelength_middle = self._ccd_logic._mono._current_wavelength_nm
-            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, self._ccd_logic._ccd_offset_nm))
-            self._ccd_logic._proceed_data_dict[self._x_axis_mode] = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
-            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
-        else:  # Pixels
-            self._ccd_logic._raw_data_dict['Pixels'] = np.arange(1, self._ccd_logic._raw_data_dict['Counts'].shape[1]+1, 1)
-            self._plot_spectrum.setLabel('bottom', 'X-axis (Pixels)')
-            self._iw.view.setLabel('bottom', 'X-axis (Pixels)')
-
+        self.log.info(f"Selected x axis units: {box_text}")
         self.update_data()
 
     def constant_background_changed(self):
@@ -342,12 +343,6 @@ class CCDGui(GUIBase):
 
     def ccd_offset_changed(self):
         self._ccd_logic._ccd_offset_nm = self._mw.ccd_offset_nm_doubleSpinBox.value()
-
-        if self._x_axis_mode != "Pixels":
-            wavelength_middle = self._ccd_logic._mono._current_wavelength_nm
-            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, self._ccd_logic._ccd_offset_nm))
-            self._ccd_logic._proceed_data_dict[self._x_axis_mode] = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
-
         self.update_data()
 
     # TODO: Refactor this whole part. It seems it is possible to make this more elegant.
