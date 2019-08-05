@@ -351,7 +351,7 @@
      </property>
      <item>
       <property name="text">
-       <string>Pixel</string>
+       <string>Pixels</string>
       </property>
      </item>
      <item>
@@ -524,6 +524,41 @@
        <width>61</width>
        <height>22</height>
       </rect>
+     </property>
+    </widget>
+    <widget class="QDoubleSpinBox" name="ccd_offset_nm_doubleSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>180</y>
+       <width>71</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="keyboardTracking">
+      <bool>false</bool>
+     </property>
+     <property name="minimum">
+      <double>-1000.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>1000.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>0.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="constant_background_label_2">
+     <property name="geometry">
+      <rect>
+       <x>170</x>
+       <y>160</y>
+       <width>81</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>CCD offset (nm):</string>
      </property>
     </widget>
    </widget>

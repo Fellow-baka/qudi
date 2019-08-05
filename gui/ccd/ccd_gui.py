@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 This file contains a gui to communicate with princeton instrument cameras.
 Allows to plot data and change acquisition parameters, e.g. exposition, binning, shutter state.
@@ -25,7 +24,6 @@ import numpy as np
 import os
 import sys
 import pyqtgraph as pg
-import time
 
 from core.module import Connector
 from gui.guibase import GUIBase
@@ -66,7 +64,7 @@ class CCDGui(GUIBase):
 
     _image = []
     _is_x_flipped = False
-    _x_axis_mode = "Pixel"
+    _x_axis_mode = "Pixels"
     # _constant_background = 0
 
     def __init__(self, config, **kwargs):
@@ -104,10 +102,6 @@ class CCDGui(GUIBase):
         self._plot_spectrum.setLabel('bottom', 'x-axis (Pixels)')
         self._plot_spectrum.setLabel('left', 'Intensity (Counts)')
 
-        # image (old version with PlotWidget)
-        # self._iw = self._mw.image_PlotWidget  # pg.PlotWidget(name='Counter1')
-        # self._plot_image = self._iw.plotItem
-
         # image (New version with pg.ImageView)
         self._iw = pg.ImageView(view=pg.PlotItem())
         self._mw.widget = QtGui.QWidget()
@@ -122,19 +116,24 @@ class CCDGui(GUIBase):
         self._iw.view.setLabel('bottom', 'x-axis (Pixels)')
         self._iw.view.setLabel('left', 'y-axis (Pixels)')
 
-        # create a new ViewBox, link the right axis to its coordinate system
-        # self._right_axis = pg.ViewBox()
-        # self._plot_item.showAxis('right')
-        # self._plot_item.scene().addItem(self._right_axis)
-        # self._plot_item.getAxis('right').linkToView(self._right_axis)
-        # self._right_axis.setXLink(self._plot_item)
-
-        # make correct button state
+        # make correct button and checkboxes states
         self._mw.focus_Action.setChecked(False)
 
-        # load boxes states
+        if self._ccd_logic._mode == '1D':  # bin y
+            self._mw.bin_checkBox.setChecked(True)
+        else:
+            self._mw.bin_checkBox.setChecked(False)
+
+        if self._ccd_logic._x_flipped:  # flip x
+            self._mw.flip_x_checkBox.setChecked(True)
+        else:
+            self._mw.flip_x_checkBox.setChecked(False)
+
+        # load spinboxes states
         self._mw.focus_doubleSpinBox.setValue(self._ccd_logic._focus_exposure)
-        # self._mw.acquisition_doubleSpinBox.editingFinished.connect(self.acquisition_time_changed)
+        self._mw.acquisition_doubleSpinBox.setValue(self._ccd_logic._acquisition_exposure)
+        self._mw.constant_background_spinBox.setValue(self._ccd_logic._constant_background)
+        self._mw.ccd_offset_nm_doubleSpinBox.setValue(self._ccd_logic._ccd_offset_nm)
 
         #####################
         # Connecting user interactions
@@ -157,6 +156,8 @@ class CCDGui(GUIBase):
 
         self._mw.bin_checkBox.stateChanged.connect(self.bin_clicked)
         self._mw.flip_x_checkBox.stateChanged.connect(self.flip_clicked)
+
+        self._mw.ccd_offset_nm_doubleSpinBox.editingFinished.connect(self.ccd_offset_changed)
 
         # Background
         self._mw.constant_background_spinBox.editingFinished.connect(self.constant_background_changed)
@@ -201,34 +202,28 @@ class CCDGui(GUIBase):
     def update_data(self):
         """ The function that grabs the data and sends it to the plot.
             If the data is 1D send it to spectrum widget, if not to image.
-            Asks logic module to convert x-axis to target units, changing axis labels.
+            Asks logic module to convert x-axis to target units and do corrections/normalizations.
+            Changing axis labels accordingly.
             TODO: Double check if the data flipped/rotated properly.
         """
-        raw_data = self._ccd_logic.buf_spectrum
-        data = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
+        raw_data = self._ccd_logic._raw_data_dict['Counts']
+        self._ccd_logic._proceed_data_dict['Counts'] = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
+        data = self._ccd_logic._proceed_data_dict['Counts']
 
-        if self._is_x_flipped:
-            if data.shape[0] == 1:
-                data = np.fliplr(data)
-            else:
-                data = np.flipud(data)
+        if self._ccd_logic._x_flipped:
+            self._ccd_logic.flip_data(data)
+
+        # Fill
+        self._ccd_logic._raw_data_dict['Pixels'] = x_axis = np.arange(1, 1340+1, 1)  # TODO: put some sane number
+
+        self._ccd_logic._proceed_data_dict['Pixels'] = self._ccd_logic._raw_data_dict['Pixels']
 
         # Convert to target units and change labels
-        if self._x_axis_mode != "Pixel":
-            wavelength_middle = self._ccd_logic._mono._current_wavelength_nm
-            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, 0))
-            x_axis = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
-            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
-            self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
-        else:  # Pixels
-            x_axis = np.arange(1, data.shape[1]+1, 1)
-            self._plot_spectrum.setLabel('bottom', 'X-axis (Pixels)')
-            self._iw.view.setLabel('bottom', 'X-axis (Pixels)')
 
         if data.shape[0] == 1:                  # Spectrum mode
             self._iw.clear()
-            # data = np.fliplr(data)
-            data = data[0]
+            x_axis = self._ccd_logic._proceed_data_dict[self._x_axis_mode]
+            data = self._ccd_logic._proceed_data_dict['Counts'][0]
             self._curve1.setData(x=x_axis, y=data)
             if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
                 self._sw.invertX(True)
@@ -238,24 +233,24 @@ class CCDGui(GUIBase):
         else:                                   # Image mode
             self._curve1.clear()
             self._iw.clear()
-            self._iw.setImage(data)
+            self._iw.setImage(self._ccd_logic._proceed_data_dict['Counts'])
             self._iw.imageItem.resetTransform()
 
-            if self._x_axis_mode != 'Pixel':
+            if self._x_axis_mode != 'Pixels':
+                x_axis = self._ccd_logic._proceed_data_dict[self._x_axis_mode]
                 # self._iw.imageItem.resetTransform()
                 self._iw.imageItem.translate(x_axis[0], 0)
                 self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/data.shape[0], 1)
                 self._iw.view.getViewBox().invertY(False)
                 aspect_ratio = data.shape[0] / (x_axis[-1] - x_axis[0])
                 self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=aspect_ratio)
-            elif self._x_axis_mode == 'Pixel':
+            elif self._x_axis_mode == 'Pixels':
                 self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=1)
 
             if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
                 self._iw.view.getViewBox().invertX(True)
                 self._iw.view.getViewBox().invertY(True)
             else:
-                # self._iw.imageItem.resetTransform()
                 self._iw.view.getViewBox().invertX(False)
                 self._iw.view.getViewBox().invertY(False)
             self._iw.autoRange()
@@ -306,27 +301,54 @@ class CCDGui(GUIBase):
     def bin_clicked(self, state):
         if state == QtCore.Qt.Checked:
             self._ccd_logic.set_parameter("bin", self._mw.roi_y_max_spinBox.value() - self._mw.roi_y0_spinBox.value())
+            self._ccd_logic._mode = '1D'
         else:
             self._ccd_logic.set_parameter("bin", 1)
+            self._ccd_logic._mode = '2D'
 
     def flip_clicked(self, state):
         """
         Changes the variable responsible for horizontal flipping the data. Updates spectrum/image afterwards.
         """
         if state == QtCore.Qt.Checked:
-            self._is_x_flipped = True
+            self._ccd_logic._x_flipped = True
         else:
-            self._is_x_flipped = False
+            self._ccd_logic._x_flipped = False
         self.update_data()
 
     def energy_unit_changed(self, index):
         box_text = self._mw.energy_selector_comboBox.currentText()
         self.log.info(f"Selected x axis units: {box_text}")
         self._x_axis_mode = box_text
+
+        self._ccd_logic._proceed_data_dict.clear()
+
+        if self._x_axis_mode != "Pixels":
+            wavelength_middle = self._ccd_logic._mono._current_wavelength_nm
+            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, self._ccd_logic._ccd_offset_nm))
+            self._ccd_logic._proceed_data_dict[self._x_axis_mode] = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
+            self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+            self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
+        else:  # Pixels
+            self._ccd_logic._raw_data_dict['Pixels'] = np.arange(1, self._ccd_logic._raw_data_dict['Counts'].shape[1]+1, 1)
+            self._plot_spectrum.setLabel('bottom', 'X-axis (Pixels)')
+            self._iw.view.setLabel('bottom', 'X-axis (Pixels)')
+
         self.update_data()
 
     def constant_background_changed(self):
         self._ccd_logic._constant_background = self._mw.constant_background_spinBox.value()
+        self.update_data()
+
+    def ccd_offset_changed(self):
+        self._ccd_logic._ccd_offset_nm = self._mw.ccd_offset_nm_doubleSpinBox.value()
+
+        if self._x_axis_mode != "Pixels":
+            wavelength_middle = self._ccd_logic._mono._current_wavelength_nm
+            x_nm = np.array(self._ccd_logic.convert_from_pixel_to_nm(wavelength_middle, self._ccd_logic._ccd_offset_nm))
+            self._ccd_logic._proceed_data_dict[self._x_axis_mode] = self._ccd_logic.convert_energy_units(x_nm, self._x_axis_mode)
+
+        self.update_data()
 
     # TODO: Refactor this whole part. It seems it is possible to make this more elegant.
 
@@ -389,6 +411,7 @@ class CCDGui(GUIBase):
             list(map(str, self._ccd_logic.get_availiable_values('VerticalShiftRate'))))
         par = self._ccd_logic.get_parameter_propagator('VerticalShiftRate')
         self._mw.vertical_shift_rate_comboBox.setCurrentText(str(par))
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

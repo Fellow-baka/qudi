@@ -20,10 +20,9 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 
 import numpy as np
-import time
 from collections import OrderedDict
 
-from core.module import Connector
+from core.module import Connector, StatusVar
 from logic.generic_logic import GenericLogic
 from qtpy import QtCore
 
@@ -46,11 +45,15 @@ class CCDLogic(GenericLogic):
     sigVideoFinished = QtCore.Signal()
 
     # different variables
-    _focus_exposure = 1.
-    _acquisition_exposure = 10.
-    _constant_background = 0
-    _mode = "1D"  # dummy value to distinguish between spectra/image
+    _focus_exposure = StatusVar(default=0.1)
+    _acquisition_exposure = StatusVar(default=0.1)
+    _constant_background = StatusVar(default=0)
+    _mode = StatusVar(default='1D')  # Var defining spectra/image mode
+    _ccd_offset_nm = StatusVar(default=0.0)
+    _x_flipped = StatusVar(default=False)
     _roi = []
+    _raw_data_dict = OrderedDict()
+    _proceed_data_dict = OrderedDict()
 
     def on_activate(self):
         """ Prepare logic module for work.
@@ -64,8 +67,12 @@ class CCDLogic(GenericLogic):
         self._roi = [0, self.resolution_x, 1, 0, self.resolution_y, 1]
 
         self.stopRequest = False
-        self.buf_spectrum = np.zeros((1, self.resolution_x))
         self.sigRepeat.connect(self.focus_loop, QtCore.Qt.QueuedConnection)
+
+        # Apply all status vars to camera
+        self.set_parameter("focus_exposure", self._focus_exposure)
+        self.set_parameter("acquisition_exposure", self._acquisition_exposure)
+        self._hardware.send_configuration()
 
     def on_deactivate(self):
         """ Deactivate module.
@@ -77,10 +84,9 @@ class CCDLogic(GenericLogic):
         # self.module_state.lock()
         self._hardware._exposure = self._acquisition_exposure
         self._hardware.start_single_acquisition()
-        self.buf_spectrum = self._hardware.get_acquired_data()
+        self._raw_data_dict['Counts'] = self._hardware.get_acquired_data()
         self.sigUpdateDisplay.emit()
         self.sigAcquisitionFinished.emit()
-
         # self.module_state.unlock()
 
     def start_focus(self):
@@ -100,8 +106,7 @@ class CCDLogic(GenericLogic):
             self.stopRequest = False
             self.module_state.unlock()
             return
-
-        self.buf_spectrum = np.rot90(self._hardware.get_acquired_data(), axes=(1, 0))
+        self._raw_data_dict['Counts'] = self._hardware.get_acquired_data()
         self.sigRepeat.emit()
 
     def set_parameter(self, par, value):
@@ -147,7 +152,7 @@ class CCDLogic(GenericLogic):
         TODO: Make it possible to work with arbitrary number of pixels.
         TODO: Ask hardware details from monochromtor.
         :param float w_mid_nm: Wavelength at the middle of ccd in nm. Corresponds to position of the grating.
-        :param float offset: Offset
+        :param float offset_nm: Offset in nanometers.
         """
         # d = 1 / (self._hardware._grating * 1000)  # distance between lines of the grating
         # incluison = np.deg2rad(self._hardware._inclusion_angle)
@@ -196,20 +201,14 @@ class CCDLogic(GenericLogic):
 
     def save_data(self, name_tag='', custom_header=None):
         """
-
         :param string name_tag: postfix name tag for saved filename.
         :param OrderedDict custom_header:
         :return:
             This ordered dictionary is added to the default data file header. It allows arbitrary
             additional experimental information to be included in the saved data file header.
         """
-        filepath = self._save_logic.get_path_for_module(module_name='spectra')
-        filelabel = 'spectrum'
-        buffered_data = self.buf_spectrum
+        filepath = self._save_logic.get_path_for_module(module_name='spectroscopy')
 
-        # Add name_tag as postfix to filename
-        if name_tag != '':
-            filelabel = filelabel + '_' + name_tag
 
         # TODO: introduce some real and additional parameters
         parameters = OrderedDict()
@@ -221,13 +220,26 @@ class CCDLogic(GenericLogic):
             for key in custom_header:
                 parameters[key] = custom_header[key]
 
-        data = OrderedDict()
+        self._proceed_data_dict.popitem('Pixels')
+        pro = self._proceed_data_dict
 
-        if buffered_data.shape[0] == 1:
-            data['pixel'] = np.arange(0, 1340, 1)
-            data['counts'] = buffered_data[0, :]
+        data = OrderedDict()
+        x_axis_list = ['Pixels', 'Wavelength (nm)', 'Raman shift (cm-1)', 'Energy (eV)', 'Energy (meV)',
+                       'Wavenumber (cm-1)', 'Frequency (THz)']
+        y_axis_list = ['Counts', 'Counts/s', 'Counts/(s*mW)']
+
+        if self._proceed_data_dict['Counts'].shape[0] == 1:
+            filelabel = 'spectrum'
+            data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
+            data.update({k: v[0] for (k, v) in pro.items() if k in y_axis_list})  # v[0] for 1D representation
         else:
-            data['counts2d'] = np.rot90(buffered_data)
+            filelabel = 'image'
+            data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
+            data['Counts'] = np.flipud(np.rot90(self._proceed_data_dict['Counts']))
+
+        # Add name_tag as postfix to filename
+        if name_tag != '':
+            filelabel = filelabel + '_' + name_tag
 
         self._save_logic.save_data(data,
                                    filepath=filepath,
@@ -243,3 +255,24 @@ class CCDLogic(GenericLogic):
         :return: Numpy array of corrected data.
         """
         return data - background
+
+    def convert_data(self, data, target_units):
+        """
+        Converts data from nanometers to target units.
+        :param data: Array of data in nm.
+        :param target_units: Requested units.
+        :return:
+        """
+        pass
+
+    def flip_data(self, data):
+        if data.shape[0] == 1:
+            self._proceed_data_dict['Counts'] = np.fliplr(data)
+        else:
+            self._proceed_data_dict['Counts'] = np.flipud(data)
+
+    def normalize_data(self, data, acquisition_time, number_of_spectra, power):
+        pass
+
+    def get_monochromator_parameters(self):
+        pass
