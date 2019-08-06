@@ -45,7 +45,7 @@ class Picam(Base, CameraInterface):
             Reshape of array returned from read_frame is needed (at least for PyLoN BR 100) in case of image
             due to unknown reasons. (Different firmwares?)
         """
-        data = self.read_frames(1, 100000)[0][0]  # First ROI of first frame
+        data = self.read_frames(1, 100_000_000)[0][0]  # First ROI of first frame
         if np.shape(data)[1] == 1 or np.shape(data)[0] == 1:  # Return as is if the data is one dimensional
             return np.rot90(data)
         else:

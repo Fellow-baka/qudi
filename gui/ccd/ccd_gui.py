@@ -109,7 +109,6 @@ class CCDGui(GUIBase):
         self._mw.widget.setLayout(QtGui.QHBoxLayout())
         self._mw.widget.layout().addWidget(self._iw)
         self._mw.image2DockWidget.setWidget(self._iw)
-        # self._iw.setImage(np.random.random((256, 256)))
 
         self._iw.view.showAxis('top')
         self._iw.view.showAxis('right')
@@ -136,7 +135,7 @@ class CCDGui(GUIBase):
         self._mw.constant_background_spinBox.setValue(self._ccd_logic._constant_background)
         self._mw.ccd_offset_nm_doubleSpinBox.setValue(self._ccd_logic._ccd_offset_nm)
 
-        self._mw.roi_x0_spinBox.setValue(self._ccd_logic._ccd_offset_nm)
+        self._mw.laser_power_mW_doubleSpinBox.setValue(self._ccd_logic._laser_power_mW)
 
         self._mw.roi_x0_spinBox.setValue(self._ccd_logic._roi[0])
         self._mw.roi_x_max_spinBox.setValue(self._ccd_logic._roi[1] + self._ccd_logic._roi[0])  # convert to coordinates from width
@@ -170,6 +169,9 @@ class CCDGui(GUIBase):
         # Background
         self._mw.constant_background_spinBox.editingFinished.connect(self.constant_background_changed)
 
+        # Some metainformation
+        self._mw.laser_power_mW_doubleSpinBox.editingFinished.connect(self.laser_power_changed)
+
         # Adc and shutter stuff
         self.fill_interface_values()
         self._mw.adc_quality_comboBox.currentIndexChanged.connect(self.adc_quality_changed)
@@ -178,8 +180,9 @@ class CCDGui(GUIBase):
         self._mw.adc_speed_comboBox.currentIndexChanged.connect(self.adc_speed_changed)
         self._mw.vertical_shift_rate_comboBox.currentIndexChanged.connect(self.vertical_shift_rate_changed)
 
-        # Other stuff
+        # Comboboxes
         self._mw.energy_selector_comboBox.currentIndexChanged.connect(self.energy_unit_changed)
+        self._mw.counts_selector_comboBox.currentIndexChanged.connect(self.counts_unit_changed)
 
         #####################
         # starting the physical measurement
@@ -220,22 +223,25 @@ class CCDGui(GUIBase):
         # self._ccd_logic._proceed_data_dict['Counts'] = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
         # data = self._ccd_logic._proceed_data_dict['Counts']
 
-        self._ccd_logic._proceed_data_dict = self._ccd_logic.convert_spectra(self._x_axis_mode, 'Counts')
-        data = self._ccd_logic._proceed_data_dict['Counts']
+        self._ccd_logic._proceed_data_dict = self._ccd_logic.convert_spectra(self._x_axis_mode, self._y_axis_mode)
+        # data = self._ccd_logic._proceed_data_dict[self._y_axis_mode]
 
-        if self._ccd_logic._x_flipped:
-            self._ccd_logic.flip_data(data)
+        # if self._ccd_logic._x_flipped:
+        #     self._ccd_logic.flip_data(data)
 
         # Fill
         # self._ccd_logic._proceed_data_dict['Pixels'] = self._ccd_logic._raw_data_dict['Pixels']
 
         # Convert to target units and change labels
 
-        if data.shape[0] == 1:                  # Spectrum mode
+        if self._ccd_logic._mode == '1D':                  # Spectrum mode
             self._iw.clear()
             x_axis = self._ccd_logic._proceed_data_dict[self._x_axis_mode]
-            data = self._ccd_logic._proceed_data_dict['Counts'][0]
-            self._curve1.setData(x=x_axis, y=data)
+            # data = self._ccd_logic._proceed_data_dict[self._y_axis_mode][0]
+            y_axis = self._ccd_logic._proceed_data_dict[self._y_axis_mode][0]
+
+            self._curve1.setData(x=x_axis, y=y_axis)
+
             if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
                 self._sw.invertX(True)
             else:
@@ -244,16 +250,17 @@ class CCDGui(GUIBase):
         else:                                   # Image mode
             self._curve1.clear()
             self._iw.clear()
-            self._iw.setImage(self._ccd_logic._proceed_data_dict['Counts'])
+            self._iw.setImage(self._ccd_logic._proceed_data_dict[self._y_axis_mode])
             self._iw.imageItem.resetTransform()
 
             if self._x_axis_mode != 'Pixels':
                 x_axis = self._ccd_logic._proceed_data_dict[self._x_axis_mode]
                 # self._iw.imageItem.resetTransform()
+                shape = self._ccd_logic._proceed_data_dict['Counts'].shape[0]
                 self._iw.imageItem.translate(x_axis[0], 0)
-                self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/data.shape[0], 1)
+                self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/shape, 1)
                 self._iw.view.getViewBox().invertY(False)
-                aspect_ratio = data.shape[0] / (x_axis[-1] - x_axis[0])
+                aspect_ratio = shape / (x_axis[-1] - x_axis[0])
                 self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=aspect_ratio)
             elif self._x_axis_mode == 'Pixels':
                 self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=1)
@@ -299,11 +306,12 @@ class CCDGui(GUIBase):
 
     def focus_time_changed(self):
         self._ccd_logic.set_parameter("focus_exposure", self._mw.focus_doubleSpinBox.value())
-        pass
 
     def acquisition_time_changed(self):
         self._ccd_logic.set_parameter("acquisition_exposure", self._mw.acquisition_doubleSpinBox.value())
-        pass
+
+    def laser_power_changed(self):
+        self._ccd_logic._laser_power_mW = self._mw.laser_power_mW_doubleSpinBox.value()
 
     def roi_changed(self):
         """ ROI changed through SpinBoxes interaction """
@@ -335,6 +343,12 @@ class CCDGui(GUIBase):
         box_text = self._mw.energy_selector_comboBox.currentText()
         self._x_axis_mode = box_text
         self.log.info(f"Selected x axis units: {box_text}")
+        self.update_data()
+
+    def counts_unit_changed(self, index):
+        box_text = self._mw.counts_selector_comboBox.currentText()
+        self._y_axis_mode = box_text
+        self.log.info(f"Selected y axis units: {box_text}")
         self.update_data()
 
     def constant_background_changed(self):

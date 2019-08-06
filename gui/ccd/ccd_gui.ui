@@ -538,7 +538,7 @@
     <widget class="QDoubleSpinBox" name="ccd_offset_nm_doubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>170</x>
+       <x>290</x>
        <y>180</y>
        <width>71</width>
        <height>22</height>
@@ -557,10 +557,10 @@
       <double>0.000000000000000</double>
      </property>
     </widget>
-    <widget class="QLabel" name="constant_background_label_2">
+    <widget class="QLabel" name="ccd_offset_label">
      <property name="geometry">
       <rect>
-       <x>170</x>
+       <x>290</x>
        <y>160</y>
        <width>81</width>
        <height>16</height>
@@ -568,6 +568,57 @@
      </property>
      <property name="text">
       <string>CCD offset (nm):</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="counts_selector_comboBox">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>180</y>
+       <width>101</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <item>
+      <property name="text">
+       <string>Counts</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Counts / s</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Counts / (s * mW)</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QDoubleSpinBox" name="laser_power_mW_doubleSpinBox">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>180</y>
+       <width>61</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="maximum">
+      <double>999.000000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="laser_power_mW_label">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>160</y>
+       <width>81</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Power (mW):</string>
      </property>
     </widget>
    </widget>

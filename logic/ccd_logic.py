@@ -50,6 +50,7 @@ class CCDLogic(GenericLogic):
     _constant_background = StatusVar(default=0)
     _mode = StatusVar(default='1D')  # Var defining spectra/image mode
     _ccd_offset_nm = StatusVar(default=0.0)
+    _laser_power_mW = StatusVar(default=0.0)
     _x_flipped = StatusVar(default=False)
     _roi = StatusVar(default=[])
     _raw_data_dict = OrderedDict()
@@ -216,22 +217,26 @@ class CCDLogic(GenericLogic):
         # TODO: introduce some real and additional parameters
         parameters = OrderedDict()
         parameters['Exposure (s)'] = self._acquisition_exposure
-        parameters['Constant background (counts)'] = self._constant_background
+        parameters['Constant background (Counts)'] = self._constant_background
+        parameters['CCD offset (nm)'] = self._ccd_offset_nm
+        parameters['Is X-axis flipped'] = self._x_flipped
+        parameters['Region of interest (ROI)'] = self._roi
+        parameters['Position of monochromator (nm)'] = self._mono._current_wavelength_nm
 
         # add any custom header params
         if custom_header is not None:
             for key in custom_header:
                 parameters[key] = custom_header[key]
 
-        self._proceed_data_dict.popitem('Pixels')
+        # self._proceed_data_dict.popitem('Pixels')
         pro = self._proceed_data_dict
 
         data = OrderedDict()
         x_axis_list = ['Pixels', 'Wavelength (nm)', 'Raman shift (cm-1)', 'Energy (eV)', 'Energy (meV)',
                        'Wavenumber (cm-1)', 'Frequency (THz)']
-        y_axis_list = ['Counts', 'Counts/s', 'Counts/(s*mW)']
+        y_axis_list = ['Counts', 'Counts / s', 'Counts / (s * mW)']
 
-        if self._proceed_data_dict['Counts'].shape[0] == 1:
+        if self._mode == '1D':
             filelabel = 'spectrum'
             data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
             data.update({k: v[0] for (k, v) in pro.items() if k in y_axis_list})  # v[0] for 1D representation
@@ -274,8 +279,22 @@ class CCDLogic(GenericLogic):
         else:
             self._proceed_data_dict['Counts'] = np.flipud(data)
 
-    def normalize_data(self, data, acquisition_time, number_of_spectra, power):
-        pass
+    def flip_datar(self, data):
+        if self._x_flipped:
+            if data.shape[0] == 1:
+                return np.fliplr(data)
+            else:
+                return np.flipud(data)
+        else:
+            return data
+
+    def normalize_data(self, data, out_units):
+        if out_units == 'Counts':
+            return data
+        elif out_units == 'Counts / s':
+            return data / self._acquisition_exposure
+        elif out_units == 'Counts / (s * mW)':
+            return data / self._acquisition_exposure / self._laser_power_mW
 
     def get_monochromator_parameters(self):
         pass
@@ -296,7 +315,11 @@ class CCDLogic(GenericLogic):
         converted_x = self.convert_energy_units(nm, x_axis)
         self._proceed_data_dict[x_axis] = np.array(converted_x)
 
-        converted_y = self.correct_background(self._raw_data_dict['Counts'], self._constant_background)
+        counts = self._raw_data_dict['Counts']
+        background_corr = self.correct_background(counts, self._constant_background)
+        flipped = self.flip_datar(background_corr)
+        converted_y = self.normalize_data(flipped, y_axis)
         self._proceed_data_dict[y_axis] = converted_y
+
         return self._proceed_data_dict
 
