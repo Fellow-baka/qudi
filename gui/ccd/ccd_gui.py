@@ -103,6 +103,18 @@ class CCDGui(GUIBase):
         self._plot_spectrum.setLabel('bottom', 'x-axis (Pixels)')
         self._plot_spectrum.setLabel('left', 'Intensity (Counts)')
 
+        # change font size
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        self._sw.getAxis("left").tickFont = font
+        self._sw.getAxis("left").setStyle(tickTextOffset=6)
+        self._sw.getAxis("bottom").tickFont = font
+        self._sw.getAxis("bottom").setStyle(tickTextOffset=6)
+        self._sw.getAxis("top").tickFont = font
+        self._sw.getAxis("top").setStyle(tickTextOffset=6)
+        self._sw.getAxis("right").tickFont = font
+        self._sw.getAxis("right").setStyle(tickTextOffset=6)
+
         # image (New version with pg.ImageView)
         self._iw = pg.ImageView(view=pg.PlotItem())
         self._mw.widget = QtGui.QWidget()
@@ -115,6 +127,18 @@ class CCDGui(GUIBase):
 
         self._iw.view.setLabel('bottom', 'x-axis (Pixels)')
         self._iw.view.setLabel('left', 'y-axis (Pixels)')
+
+        # change font size
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        self._iw.view.getAxis("left").tickFont = font
+        self._iw.view.getAxis("left").setStyle(tickTextOffset=6)
+        self._iw.view.getAxis("bottom").tickFont = font
+        self._iw.view.getAxis("bottom").setStyle(tickTextOffset=6)
+        self._iw.view.getAxis("top").tickFont = font
+        self._iw.view.getAxis("top").setStyle(tickTextOffset=6)
+        self._iw.view.getAxis("right").tickFont = font
+        self._iw.view.getAxis("right").setStyle(tickTextOffset=6)
 
         # make correct button and checkboxes states
         self._mw.focus_Action.setChecked(False)
