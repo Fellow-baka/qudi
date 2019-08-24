@@ -78,6 +78,7 @@ class CCDLogic(GenericLogic):
     def on_deactivate(self):
         """ Deactivate module.
         """
+        self.module_state.unlock()
         self.stop_focus()
 
     def start_single_acquisition(self):
@@ -200,6 +201,12 @@ class CCDLogic(GenericLogic):
             return [1e7 / x for x in data_array]
         elif out_unit == "Frequency (THz)":
             return [299_792.458 / x for x in data_array]
+        elif out_unit == "Energy RELATIVE (meV)":
+            laserline_nm = self._mono.laserline
+            return [(1 / laserline_nm - 1 / x) * 1e7 / 8.06554 for x in data_array]
+        elif out_unit == "Frequency RELATIVE (THz)":
+            laserline_nm = self._mono.laserline
+            return [(1 / laserline_nm - 1 / x) * 1e7 / 33.35641 for x in data_array]
 
     def get_availiable_values(self, param):
         return self._hardware.get_availiable_values(param)
@@ -222,6 +229,7 @@ class CCDLogic(GenericLogic):
         parameters['Is X-axis flipped'] = self._x_flipped
         parameters['Region of interest (ROI)'] = self._roi
         parameters['Position of monochromator (nm)'] = self._mono._current_wavelength_nm
+        parameters['Excitation line (nm)'] = self._mono.laserline
 
         # add any custom header params
         if custom_header is not None:
@@ -232,8 +240,15 @@ class CCDLogic(GenericLogic):
         pro = self._proceed_data_dict
 
         data = OrderedDict()
-        x_axis_list = ['Pixels', 'Wavelength (nm)', 'Raman shift (cm-1)', 'Energy (eV)', 'Energy (meV)',
-                       'Wavenumber (cm-1)', 'Frequency (THz)']
+        x_axis_list = ['Pixels',
+                       'Wavelength (nm)',
+                       'Raman shift (cm-1)',
+                       'Energy (eV)',
+                       'Energy (meV)',
+                       'Wavenumber (cm-1)',
+                       'Frequency (THz)',
+                       "Energy RELATIVE (meV)",
+                       "Frequency RELATIVE (THz)"]
         y_axis_list = ['Counts', 'Counts / s', 'Counts / (s * mW)']
 
         if self._mode == '1D':

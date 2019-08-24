@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1045</width>
-    <height>631</height>
+    <height>474</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -358,6 +358,9 @@
        <height>22</height>
       </rect>
      </property>
+     <property name="toolTip">
+      <string>Select x-axis units. RELATIVE means relative to excitation line.</string>
+     </property>
      <item>
       <property name="text">
        <string>Pixels</string>
@@ -391,6 +394,16 @@
      <item>
       <property name="text">
        <string>Frequency (THz)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Energy RELATIVE (meV)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Frequency RELATIVE (THz)</string>
       </property>
      </item>
     </widget>

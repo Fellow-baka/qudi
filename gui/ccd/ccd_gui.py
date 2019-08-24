@@ -266,7 +266,13 @@ class CCDGui(GUIBase):
 
             self._curve1.setData(x=x_axis, y=y_axis)
 
-            if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
+            if self._x_axis_mode in ("Energy (eV)",
+                                     "Energy (meV)",
+                                     "Wavenumber (cm-1)",
+                                     "Frequency (THz)",
+                                     # "Energy RELATIVE (meV)",
+                                     # "Frequency RELATIVE (THz)"
+                                     ):
                 self._sw.invertX(True)
             else:
                 self._sw.invertX(False)
@@ -289,7 +295,13 @@ class CCDGui(GUIBase):
             elif self._x_axis_mode == 'Pixels':
                 self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=1)
 
-            if self._x_axis_mode in ("Energy (eV)", "Energy (meV)", "Wavenumber (cm-1)", "Frequency (THz)"):
+            if self._x_axis_mode in ("Energy (eV)",
+                                     "Energy (meV)",
+                                     "Wavenumber (cm-1)",
+                                     "Frequency (THz)",
+                                     # "Energy RELATIVE (meV)",
+                                     # "Frequency RELATIVE (THz)"
+                                     ):
                 self._iw.view.getViewBox().invertX(True)
                 self._iw.view.getViewBox().invertY(True)
             else:
@@ -300,6 +312,9 @@ class CCDGui(GUIBase):
         # Refresh lables!
         self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
         self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
+
+        self._plot_spectrum.setLabel('left', f'Intensity ({self._y_axis_mode})')
+        self._iw.view.setLabel('left', f'Intensity ({self._y_axis_mode})')
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """
@@ -319,6 +334,7 @@ class CCDGui(GUIBase):
         self._mw.save_Action.setDisabled(True)
 
     def acquisition_finished(self):
+        """ Change state of the buttons after finishing acquisition """
         self._mw.focus_Action.setDisabled(False)
         self._mw.acquisition_Action.setDisabled(False)
         self._mw.save_Action.setDisabled(False)
