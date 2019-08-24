@@ -246,12 +246,6 @@ class MotorStanda(Base, MotorInterface):
         """
         lib.command_wait_for_stop(self._device_id, self._refresh_interval_ms)
 
-    def baka(self):
-        x_status = edges_settings_t()
-        result = lib.get_status(self._device_id, byref(x_status))
-        print("Result: " + repr(result))
-        return [x_status.BorderFlags, x_status.EnderFlags, x_status.LeftBorder, x_status.RightBorder]
-
     def get_info(self):
         """Prints bunch of information about library, controller, and stage."""
 
