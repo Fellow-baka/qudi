@@ -38,11 +38,14 @@ class CCDLogic(GenericLogic):
     savelogic = Connector(interface='SaveLogic')
 
     sigRepeat = QtCore.Signal()
-    sigAquired = QtCore.Signal()
+    # sigAquired = QtCore.Signal()
 
     sigUpdateDisplay = QtCore.Signal()
     sigAcquisitionFinished = QtCore.Signal()
-    sigVideoFinished = QtCore.Signal()
+    # sigVideoFinished = QtCore.Signal()
+
+    _is_focusing = False
+    _is_acquiring = False
 
     # different variables
     _focus_exposure = StatusVar(default=0.1)
@@ -78,22 +81,28 @@ class CCDLogic(GenericLogic):
     def on_deactivate(self):
         """ Deactivate module.
         """
-        self.module_state.unlock()
-        self.stop_focus()
+        # self.module_state.unlock()
+        # self.stop_acquisition()
 
     def start_single_acquisition(self):
-        """Get single spectrum from hardware"""
-        # self.module_state.lock()
+        """ Get single spectrum from hardware """
+        self.module_state.lock()
         self._hardware._exposure = self._acquisition_exposure
-        self._hardware.start_single_acquisition()
+        # self._hardware.start_single_acquisition()
         self._raw_data_dict['Pixels'] = np.arange(self._roi[0]+1, self._roi[1]+1, 1)
         self._raw_data_dict['Counts'] = self._hardware.get_acquired_data()
         self.sigUpdateDisplay.emit()
+        self.sigAcquisitionFinished.emit()
+        self.module_state.unlock()
+
+    def stop_acquisition(self):
+        self._hardware.stop_acquisition()
         self.sigAcquisitionFinished.emit()
         # self.module_state.unlock()
 
     def start_focus(self):
         """ Start measurement: zero the buffer and call loop function."""
+        self._is_focusing = True
         self._hardware._exposure = self._focus_exposure
         self.module_state.lock()
         self.sigRepeat.emit()
@@ -102,6 +111,7 @@ class CCDLogic(GenericLogic):
         """ Ask the measurement loop to stop. """
         self.stopRequest = True
         self.sigAcquisitionFinished.emit()
+        self._is_focusing = False
 
     def focus_loop(self):
         """ Continuously read data from camera """

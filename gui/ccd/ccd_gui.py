@@ -213,23 +213,21 @@ class CCDGui(GUIBase):
         self.sigFocusStart.connect(self._ccd_logic.start_focus)
         self.sigFocusStop.connect(self._ccd_logic.stop_focus)
         self.sigAcquisitionStart.connect(self._ccd_logic.start_single_acquisition)
+        self.sigAcquisitionStop.connect(self._ccd_logic.stop_acquisition, QtCore.Qt.DirectConnection)
 
         self._ccd_logic.sigUpdateDisplay.connect(self.update_data)
         self._ccd_logic.sigAcquisitionFinished.connect(self.acquisition_finished)
-        # self.sigAcquisitionStop.connect(self._ccd_logic.start_single_acquisition)
 
         self._ccd_logic.sigRepeat.connect(self.update_data)
 
     def show(self):
-        """Make window visible and put it above all other windows.
-        """
+        """ Make window visible and put it above all other windows """
         QtWidgets.QMainWindow.show(self._mw)
         self._mw.activateWindow()
         self._mw.raise_()
 
     def on_deactivate(self):
-        """ Deactivate the module properly.
-        """
+        """ Deactivate the module properly """
         # FIXME: !
         self._ccd_logic.stop_focus()
         self._mw.close()
@@ -246,6 +244,9 @@ class CCDGui(GUIBase):
         # raw_data = self._ccd_logic._raw_data_dict['Counts']
         # self._ccd_logic._proceed_data_dict['Counts'] = self._ccd_logic.correct_background(raw_data, self._ccd_logic._constant_background)
         # data = self._ccd_logic._proceed_data_dict['Counts']
+
+        if self._ccd_logic._raw_data_dict['Counts'] == []:
+            return None  # TODO: Just clean some code
 
         self._ccd_logic._proceed_data_dict = self._ccd_logic.convert_spectra(self._x_axis_mode, self._y_axis_mode)
         # data = self._ccd_logic._proceed_data_dict[self._y_axis_mode]
@@ -318,7 +319,7 @@ class CCDGui(GUIBase):
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """
-        self._mw.number_of_spectra_spinBox.setFocus()
+        # self._mw.number_of_spectra_spinBox.setFocus()
         self._mw.acquisition_Action.setDisabled(True)
         self._mw.save_Action.setDisabled(True)
         if self._ccd_logic.module_state() == 'locked':
@@ -328,15 +329,20 @@ class CCDGui(GUIBase):
 
     def acquisition_clicked(self):
         """ Handling the Acquisition button for getting one image/spectrum """
-        self.sigAcquisitionStart.emit()
+        # self.sigAcquisitionStart.emit()
         self._mw.focus_Action.setDisabled(True)
-        self._mw.acquisition_Action.setDisabled(True)
+        # self._mw.acquisition_Action.setDisabled(True)
         self._mw.save_Action.setDisabled(True)
+        if self._ccd_logic.module_state() == 'locked':
+            self.sigAcquisitionStop.emit()
+        else:
+            self.sigAcquisitionStart.emit()
 
     def acquisition_finished(self):
         """ Change state of the buttons after finishing acquisition """
         self._mw.focus_Action.setDisabled(False)
         self._mw.acquisition_Action.setDisabled(False)
+        self._mw.acquisition_Action.setChecked(False)
         self._mw.save_Action.setDisabled(False)
 
     def save_clicked(self):

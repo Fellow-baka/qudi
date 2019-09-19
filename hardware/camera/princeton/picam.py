@@ -37,7 +37,10 @@ class Picam(Base, CameraInterface):
         pass
 
     def stop_acquisition(self):
-        pass
+        running = pibln()
+        self.lib.Picam_IsAcquisitionRunning(self.cam, ptr(running))
+        if running.value:
+            self.lib.Picam_StopAcquisition(self.cam)
 
     def get_acquired_data(self):
         """
@@ -45,17 +48,28 @@ class Picam(Base, CameraInterface):
             Reshape of array returned from read_frame is needed (at least for PyLoN BR 100) in case of image
             due to unknown reasons. (Different firmwares?)
         """
-        data = self.read_frames(1, 100_000_000)[0][0]  # First ROI of first frame
-        if np.shape(data)[1] == 1 or np.shape(data)[0] == 1:  # Return as is if the data is one dimensional
-            return np.rot90(data)
+        data = self.read_frames(1, 100_000_000)
+        if data == []:  # empty list if something goes wrong
+            # return np.full((1, 1340), 0).reshape((-1, 1))
+            return data
         else:
-            roi = self.get_parameter('Rois')
-            height = roi.roi_array.contents.height
-            width = roi.roi_array.contents.width
-            reshaped = np.reshape(data, [height, width])
-            rotated = np.rot90(reshaped)
-            flipped = np.flipud(rotated)
-            return flipped
+            data = data[0][0]  # First ROI of first frame
+            if np.shape(data)[1] == 1 or np.shape(data)[0] == 1:  # Return as is if the data is one dimensional
+                return np.rot90(data)
+            else:
+                roi = self.get_parameter('Rois')
+                height = roi.roi_array.contents.height
+                width = roi.roi_array.contents.width
+                reshaped = np.reshape(data, [height, width])
+                rotated = np.rot90(reshaped)
+                flipped = np.flipud(rotated)
+                return flipped
+
+    def is_acqusition_running(self):
+        """ Checks if acquisition still running """
+        running = pibln()
+        self.lib.Picam_IsAcquisitionRunning(self.cam, ptr(running))
+        return running.value
 
     def set_exposure(self, exposure):
         self.set_parameter("ExposureTime", exposure)
