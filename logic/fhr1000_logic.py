@@ -20,6 +20,7 @@ class Fhr1000Logic(GenericLogic):
     hardware = Connector(interface='SpectrometerInterface')
 
     # status variables
+    _current_wavelength_nm = None
 
     def __init__(self, **kwargs):
         """ Create SpectrometerLogic object with connectors.
@@ -38,12 +39,15 @@ class Fhr1000Logic(GenericLogic):
 
         self.laserline = 488.0
 
+        self._current_wavelength_nm = self.read_wavelength_nm()
+
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module."""
         pass
 
     def move_grating_nm(self, requested_position_nm):
         self._hardware.move_to_nm(requested_position_nm)
+        self._current_wavelength_nm = self.read_grating_nm()
 
     def read_grating_nm(self):
         return self._hardware.read_position_nm()
@@ -53,3 +57,14 @@ class Fhr1000Logic(GenericLogic):
 
     def move_slit_um(self, requested_slit_width_um):
         self._hardware.move_slit_absolute_um(requested_slit_width_um)
+
+    #####################################
+    # DEFINITIONS FROM HR640! TODO: REFACTOR THIS
+    #####################################
+
+    def read_wavelength_nm(self):
+        return self.read_grating_nm()
+
+    def move_to_nm(self, target_nm):
+        self.move_grating_nm(target_nm)
+        self._current_wavelength_nm = self.read_wavelength_nm()

@@ -82,7 +82,7 @@ class Fhr1000(Base, SpectrometerInterface):
         """
         self.rm = visa.ResourceManager()
         try:
-            self._spectrometer_handle = self.rm.open_resource(self._com_port_fhr1000, baud_rate=19200, data_bits=8,
+            self._spectrometer_handle = self.rm.open_resource(self._com_port_fhr1000, baud_rate=1200, data_bits=8,
                                                               write_termination='\r', read_termination='\r')
         except:
             self.log.warning('Cannot connect to spectrometer! Check ports.')
