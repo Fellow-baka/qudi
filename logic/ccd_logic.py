@@ -54,6 +54,8 @@ class CCDLogic(GenericLogic):
     _mode = StatusVar(default='1D')  # Var defining spectra/image mode
     _ccd_offset_nm = StatusVar(default=0.0)
     _laser_power_mW = StatusVar(default=0.0)
+    _magnetic_field_T = StatusVar(default=0.0)  # TODO: move to magnet interface/hardware
+    _arbitrary_tag = StatusVar(default='')
     _x_flipped = StatusVar(default=False)
     _roi = StatusVar(default=[])
     _raw_data_dict = OrderedDict()

@@ -160,6 +160,8 @@ class CCDGui(GUIBase):
         self._mw.ccd_offset_nm_doubleSpinBox.setValue(self._ccd_logic._ccd_offset_nm)
 
         self._mw.laser_power_mW_doubleSpinBox.setValue(self._ccd_logic._laser_power_mW)
+        self._mw.magnetic_field_T_doubleSpinBox.setValue(self._ccd_logic._magnetic_field_T)
+        self._mw.arbitrary_tag_lineEdit.setText(self._ccd_logic._arbitrary_tag)
 
         self._mw.roi_x0_spinBox.setValue(self._ccd_logic._roi[0])
         self._mw.roi_x_max_spinBox.setValue(self._ccd_logic._roi[1] + self._ccd_logic._roi[0])  # convert to coordinates from width
@@ -195,6 +197,8 @@ class CCDGui(GUIBase):
 
         # Some metainformation
         self._mw.laser_power_mW_doubleSpinBox.editingFinished.connect(self.laser_power_changed)
+        self._mw.magnetic_field_T_doubleSpinBox.editingFinished.connect(self.magnetic_field_changed)
+        self._mw.arbitrary_tag_lineEdit.editingFinished.connect(self.arbitrary_tag_changed)
 
         # Adc and shutter stuff
         self.fill_interface_values()
@@ -404,6 +408,12 @@ class CCDGui(GUIBase):
     def ccd_offset_changed(self):
         self._ccd_logic._ccd_offset_nm = self._mw.ccd_offset_nm_doubleSpinBox.value()
         self.update_data()
+
+    def magnetic_field_changed(self):
+        self._ccd_logic._magnetic_field_T = self._mw.magnetic_field_T_doubleSpinBox.value()
+
+    def arbitrary_tag_changed(self):
+        self._ccd_logic._arbitrary_tag = self._mw.arbitrary_tag_lineEdit.text()
 
     # TODO: Refactor this whole part. It seems it is possible to make this more elegant.
 
