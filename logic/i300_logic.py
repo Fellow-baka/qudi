@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This file contains logic to control FHR1000 HORIBA JOBIN YVON monochromator.
+This file contains logic to control acton i300 and 2300 Princeton Instruments monochromators.
 """
 
 from core.module import Connector, StatusVar
@@ -10,10 +10,10 @@ from core.util.network import netobtain
 from logic.generic_logic import GenericLogic
 
 
-class Fhr1000Logic(GenericLogic):
-    """This logic module deals with FHR1000 spectrometer."""
+class I300Logic(GenericLogic):
+    """This logic module deals with i300 spectrometer."""
 
-    _modclass = 'fhr1000logic'
+    _modclass = 'i300logic'
     _modtype = 'logic'
 
     # declare connectors
@@ -21,6 +21,7 @@ class Fhr1000Logic(GenericLogic):
 
     # status variables
     _current_wavelength_nm = None
+    _current_grating_lines = None
 
     def __init__(self, **kwargs):
         """ Create SpectrometerLogic object with connectors.
@@ -40,6 +41,7 @@ class Fhr1000Logic(GenericLogic):
         self.laserline = 488.0
 
         self._current_wavelength_nm = self.read_wavelength_nm()
+        self._current_grating_lines = self._hardware.read_grating()[1]
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module."""
@@ -53,13 +55,23 @@ class Fhr1000Logic(GenericLogic):
         return self._hardware.read_position_nm()
 
     def read_slit_um(self):
-        return self._hardware.read_slit_um()
+        # TODO: remove this for i300
+        # there is no automatic slit
+        # return self._hardware.read_slit_um()
+        pass
 
     def move_slit_um(self, requested_slit_width_um):
-        self._hardware.move_slit_absolute_um(requested_slit_width_um)
+        # TODO: remove this for i300
+        # there is no automatic slit
+        # self._hardware.move_slit_absolute_um(requested_slit_width_um)
+        pass
+
+    def set_grating(self, grating_number):
+        self._hardware.set_grating(grating_number)
+        self._current_grating_lines = self._hardware.read_grating()[1]
 
     #####################################
-    # DEFINITIONS FROM HR640! TODO: REFACTOR THIS
+    # DEFINITIONS FROM HR640 (and FHR1000 after)! TODO: REFACTOR THIS
     #####################################
 
     def read_wavelength_nm(self):

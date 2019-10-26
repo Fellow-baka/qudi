@@ -171,9 +171,9 @@ class CCDLogic(GenericLogic):
         # d = 1 / (self._hardware._grating * 1000)  # distance between lines of the grating
         # incluison = np.deg2rad(self._hardware._inclusion_angle)
         # f = self._hardware._focal_length
-        d = 1 / (1200 * 1000)  # distance between lines of the grating
-        inclusion = np.deg2rad(17.351)
-        f = 640
+        d = 1 / (self._mono._current_grating_lines * 1000)  # distance between lines of the grating
+        inclusion = np.deg2rad(30.4)  # INCLUSION FOR HR640 is 17.351 / FHR1000 is 11.5 / i300 30.4
+        f = 300
         x = self._hardware.get_parameter("PixelWidth") / 1000  # um -> mm
         m = 1  # diffraction order
         delta = 0  # deviation of the CCD from the plane, will be used later

@@ -27,14 +27,6 @@ from interface.spectrometer_interface import SpectrometerInterface
 import visa
 import time
 
-# all the commands to play with spectrometer is just ascii sequences which we transfer through RS232 by pyvisa
-# read position in nm: "Z62"     Examples:     Input: "Z62,0\r"              Output: "o546.074\r"
-# load position in nm: "Z61"     Examples:     Input: "Z62,0,500.0\r"        Output: "o" (note absence of "\r"!)
-# test if motors are busy: "E"   Examples:     Input: "E\r"                  Output: "oz" is not "oq" is busy
-# read slit position: "j"        Examples:     Input: "j0,0\r"               Output: "o100\r"
-# move slit relative: "k"        Examples:     Input: "k0,0,200\r"           Output: "o"
-
-
 class I300(Base, SpectrometerInterface):
     """
     Main class for i300 Princeton Instruments spectrometer.
@@ -62,6 +54,8 @@ class I300(Base, SpectrometerInterface):
         """ Activate module."""
         self.connect()
         self.delay = 0.3  # 0.3 sec delay between read/write
+        time.sleep(self.delay)
+        self.write_speed(1000)
 
     def on_deactivate(self):
         """ Deactivate module."""
@@ -174,9 +168,9 @@ class I300(Base, SpectrometerInterface):
         :param grating_number: Number of requested grating.
         """
         time.sleep(self.delay)
+        self._spectrometer_handle.timeout = 600000  # ms
         self._spectrometer_handle.query(f'{grating_number} GRATING')
-    # def set_grating(self):
-
+        self._spectrometer_handle.timeout = 2000
 
 # some methods for abstract class
     def recordSpectrum(self):
