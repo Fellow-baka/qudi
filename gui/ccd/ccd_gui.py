@@ -215,7 +215,7 @@ class CCDGui(GUIBase):
         #####################
         # starting the physical measurement
         self.sigFocusStart.connect(self._ccd_logic.start_focus)
-        self.sigFocusStop.connect(self._ccd_logic.stop_focus)
+        self.sigFocusStop.connect(self._ccd_logic.stop_focus, QtCore.Qt.DirectConnection)
         self.sigAcquisitionStart.connect(self._ccd_logic.start_single_acquisition)
         self.sigAcquisitionStop.connect(self._ccd_logic.stop_acquisition, QtCore.Qt.DirectConnection)
 

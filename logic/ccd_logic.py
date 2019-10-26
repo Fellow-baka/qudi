@@ -111,6 +111,7 @@ class CCDLogic(GenericLogic):
 
     def stop_focus(self):
         """ Ask the measurement loop to stop. """
+        self._hardware.stop_acquisition()
         self.stopRequest = True
         self.sigAcquisitionFinished.emit()
         self._is_focusing = False
