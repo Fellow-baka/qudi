@@ -284,42 +284,44 @@ class CCDGui(GUIBase):
             # self._sw.plotItem.autoRange()
         else:                                   # Image mode
             self._curve1.clear()
-            self._iw.clear()
+            # self._iw.clear()
             self._iw.setImage(self._ccd_logic._proceed_data_dict[self._y_axis_mode])
-            self._iw.imageItem.resetTransform()
+            self._iw.view.setRange(xRange=[640, 680])
+            self._iw.view.setRange(yRange=[0, 100])
+            # self._iw.imageItem.resetTransform()
 
             if self._x_axis_mode != 'Pixels':
                 x_axis = self._ccd_logic._proceed_data_dict[self._x_axis_mode]
                 # self._iw.imageItem.resetTransform()
                 shape = self._ccd_logic._proceed_data_dict['Counts'].shape[0]
-                self._iw.imageItem.translate(x_axis[0], 0)
-                self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/shape, 1)
-                self._iw.view.getViewBox().invertY(False)
-                aspect_ratio = shape / (x_axis[-1] - x_axis[0])
-                self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=aspect_ratio)
-            elif self._x_axis_mode == 'Pixels':
-                self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=1)
-
-            if self._x_axis_mode in ("Energy (eV)",
-                                     "Energy (meV)",
-                                     "Wavenumber (cm-1)",
-                                     "Frequency (THz)",
-                                     # "Energy RELATIVE (meV)",
-                                     # "Frequency RELATIVE (THz)"
-                                     ):
-                self._iw.view.getViewBox().invertX(True)
-                self._iw.view.getViewBox().invertY(True)
-            else:
-                self._iw.view.getViewBox().invertX(False)
-                self._iw.view.getViewBox().invertY(False)
-            self._iw.autoRange()
+            #     self._iw.imageItem.translate(x_axis[0], 0)
+            #     self._iw.imageItem.scale((x_axis[-1] - x_axis[0])/shape, 1)
+            #     self._iw.view.getViewBox().invertY(False)
+            #     aspect_ratio = shape / (x_axis[-1] - x_axis[0])
+            #     self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=aspect_ratio)
+            # elif self._x_axis_mode == 'Pixels':
+            #     self._iw.view.getViewBox().setAspectLocked(lock=True, ratio=1)
+            #
+            # if self._x_axis_mode in ("Energy (eV)",
+            #                          "Energy (meV)",
+            #                          "Wavenumber (cm-1)",
+            #                          "Frequency (THz)",
+            #                          # "Energy RELATIVE (meV)",
+            #                          # "Frequency RELATIVE (THz)"
+            #                          ):
+            #     self._iw.view.getViewBox().invertX(True)
+            #     self._iw.view.getViewBox().invertY(True)
+            # else:
+            #     self._iw.view.getViewBox().invertX(False)
+            #     self._iw.view.getViewBox().invertY(False)
+            # self._iw.autoRange()
 
         # Refresh lables!
         self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
         self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
 
-        self._plot_spectrum.setLabel('left', f'Intensity ({self._y_axis_mode})')
-        self._iw.view.setLabel('left', f'Intensity ({self._y_axis_mode})')
+        # self._plot_spectrum.setLabel('left', f'Intensity ({self._y_axis_mode})')
+        # self._iw.view.setLabel('left', f'Intensity ({self._y_axis_mode})')
 
     def focus_clicked(self):
         """ Handling the Focus button to stop and start continuous acquisition """

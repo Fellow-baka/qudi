@@ -242,6 +242,9 @@ class CCDLogic(GenericLogic):
         parameters['Region of interest (ROI)'] = self._roi
         parameters['Position of monochromator (nm)'] = self._mono._current_wavelength_nm
         parameters['Excitation line (nm)'] = self._mono.laserline
+        parameters['Laser power (mW)'] = self._laser_power_mW
+        parameters['Magnetic field (T)'] = self._magnetic_field_T
+        parameters['Arbitrary values'] = self._arbitrary_tag
 
         # add any custom header params
         if custom_header is not None:
@@ -271,6 +274,14 @@ class CCDLogic(GenericLogic):
             filelabel = 'image'
             data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
             data['Counts'] = np.flipud(np.rot90(self._proceed_data_dict['Counts']))
+
+        # generate a name_tag using various experimental parameters
+        name_tag = ''
+        name_tag += str(self._acquisition_exposure) + 's_'
+        name_tag += str(self._magnetic_field_T) + 'T_'
+        name_tag += str(self._laser_power_mW) + 'mW_'
+        name_tag += str(self._arbitrary_tag)
+        name_tag.replace('.', 'p')
 
         # Add name_tag as postfix to filename
         if name_tag != '':
