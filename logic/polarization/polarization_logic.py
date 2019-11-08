@@ -36,21 +36,12 @@ class PolarisationDepLogic(GenericLogic):
     motor = Connector(interface='MotorInterface')
 
     signal_rotation_finished = QtCore.Signal()
-    signal_start_rotation = QtCore.Signal()
 
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
 
-        self._hwpmotor = self.motor()
-
-        # Initialise measurement parameters
-        # self.scan_length = 360
-        # self.scan_speed = 10  # not yet used
-
-        # Connect signals
-        # self.signal_rotation_finished.connect(self.finish_scan, QtCore.Qt.QueuedConnection)
-        # self.signal_start_rotation.connect(self.rotate_polarisation, QtCore.Qt.QueuedConnection)
+        self._rotator = self.motor()
 
     def on_deactivate(self):
         """
@@ -58,34 +49,51 @@ class PolarisationDepLogic(GenericLogic):
         """
         return
 
-    # def measure_polarisation_dependence(self):
-    #     """
-    #     Do a simple pol dep measurement.
-    #     """
-    #
-    #     # Set up measurement
-    #     self._hwpmotor.move_abs(0)
-    #
-    #     # configure the countergui
-    #
-    #
-    #     self._counter_logic.start_saving()
-    #     self.signal_start_rotation.emit()
+    def move_abs(self, param_dict):
+        """ Rotate selected axis to absolute value.
 
-    # def rotate_polarisation(self):
-    #     self._hwpmotor.move_rel(self.scan_length)
-    #     self.log.info('rotation finished, saving data')
-    #     self.signal_rotation_finished.emit()
+        @param param_dict: dictionary containing axis and angle
+        """
+        self._rotator.move_abs(param_dict)
+        self.wait_until_stop()
+        self.signal_rotation_finished.emit()
 
-#     def finish_scan(self):
-#         self._counter_logic.save_data()
-# #        self._counter_logic.stopCount()
+    def move_rel(self, param_dict):
+        """ Rotate selected axis by relative value.
 
-    def mov_abs(self, angle):
-        self._hwpmotor.move_abs({f'{self._hwpmotor._axis_label}': angle})
+        @param param_dict: dictionary containing axis and angle
+        """
+        self._rotator.move_rel(param_dict)
 
-    def get_pos(self):
-        return self._hwpmotor.get_pos()
+    def get_pos(self, param_dict=None):
+        """ Gets the position of all or a specific axis.
 
-    def set_zero(self):
-        self._hwpmotor.calibrate()
+        @param param_dict: dictionary containing axis and angle
+        """
+        return self._rotator.get_pos(param_dict)
+
+    def calibrate(self, param_dict):
+        """ Set zero for specified axis.
+
+        @param param_dict: dictionary containing axis and angle
+        """
+        self._rotator.calibrate(param_dict)
+
+    def get_number_of_axes(self):
+        """ Get a number of active axes
+
+        @return int: number of active axes
+        """
+        return len(self._rotator._device_dictionary)
+
+    def get_axes_labels(self):
+        """ Get a labels of the axes
+
+        @return list: number of active axes
+        """
+        return list(self._rotator._device_dictionary.keys())
+
+    def wait_until_stop(self, param_dict=None):
+        """ Waits until all axes are stopped
+        """
+        self._rotator.wait_until_stop(param_dict)
